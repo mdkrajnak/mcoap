@@ -4,6 +4,7 @@
  * @{
  */
 
+#include "msys/ms_memory.h"
 #include "mcoap/mc_options_list.h"
 
 mc_options_list_t* mc_options_list_alloc() {

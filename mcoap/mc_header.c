@@ -22,12 +22,12 @@
  * Note that the arguments are not checked to see if they are valid.
  */
 uint32_t mc_header_create(uint8_t version, uint8_t message_type, uint32_t token_len, uint8_t code, uint16_t message_id) {
-    uint8_t header = (VERSION_MASK & (version << VERSION_OFFSET));
+    uint32_t header = (VERSION_MASK & (version << VERSION_OFFSET));
     header = header | (MTYPE_MASK & (message_type << MTYPE_OFFSET));
     header = header | (TKLEN_MASK & (token_len << TKLEN_OFFSET));
     header = header | (CODE_MASK & (code << CODE_OFFSET));
     header = header | (MID_MASK & message_id);
-	return 0;
+	return header;
 }
 
 /**

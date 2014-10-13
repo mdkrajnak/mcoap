@@ -1,5 +1,5 @@
 -- Base solution
-solution("ucoap")
+solution("mcoap")
    configurations({ "Debug", "Release" })
    includedirs({ ".." })
 
