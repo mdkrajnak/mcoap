@@ -44,7 +44,7 @@ project("mcoap")
     
 -- Application project files.  Includes application and platform specific options.
 
-project("testus")
+project("testms")
     kind("ConsoleApp")
     language("C")
     files({ "../testms/**.h", "../testms/**.c" })
@@ -54,7 +54,7 @@ project("testus")
     configuration("gmake")
         links("m")
         
-project("testuc")
+project("testmc")
     kind("ConsoleApp")
     language("C")
     files({ "../testmc/**.h", "../testmc/**.c" })

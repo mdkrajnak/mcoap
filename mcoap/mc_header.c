@@ -6,7 +6,7 @@
  
 #include "mcoap/mc_header.h"
 
-#define VERSION_MASK 0xB0000000
+#define VERSION_MASK 0xC0000000
 #define MTYPE_MASK   0x30000000
 #define TKLEN_MASK   0x0F000000
 #define CODE_MASK    0x00FF0000

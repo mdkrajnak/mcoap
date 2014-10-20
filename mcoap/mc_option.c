@@ -82,7 +82,7 @@ static uint32_t extended_int_size(uint32_t delta) {
 		result = 3;
 	}
 	else {
-		result = 0
+		result = 0;
 	}
 	return result;
 }
@@ -94,7 +94,7 @@ static uint32_t extended_int_size(uint32_t delta) {
  */
 uint32_t mc_option_buffer_size(mc_option_t* option, uint32_t prev_option_num) {
 	uint32_t delta = option->option_num - prev_option_num;
-	uint32_t nbytes = option->value->nbytes;
+	uint32_t nbytes = option->value.nbytes;
 
 	return extended_int_size(delta) + extended_int_size(nbytes) + nbytes - 1;
 }

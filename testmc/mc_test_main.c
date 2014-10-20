@@ -6,6 +6,7 @@
 #include "msys/ms_log.h"
 
 #include "testmc/mc_code_test.h"
+#include "testmc/mc_header_test.h"
 
 #if defined(WIN32) && defined(_DEBUG)
 void dumpMemLeaks() {
@@ -37,6 +38,7 @@ void run_all_tests() {
     ms_log_debug("starting testing");
 
     add_tmp_suite(suite, mc_code_suite());
+    add_tmp_suite(suite, mc_header_suite());
 
     CuSuiteRun(suite);
     

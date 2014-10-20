@@ -21,3 +21,14 @@
 *.i*86
 *.x86_64
 *.hex
+
+# Others
+.project
+.cproject
+Debug/
+Release/
+debug/
+release/
+obj/
+*~
+

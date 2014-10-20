@@ -34,7 +34,7 @@ static int compare_options (const void * left, const void * right) {
 }
 
 /** Sort an array of items by tag. */
-static void options_sort(uint32_t count, mc_options_list_t* items) {
+static void options_sort(uint32_t count, mc_option_t* items) {
     qsort(items, count, sizeof(mc_options_list_t), compare_options);
 }
 
@@ -78,7 +78,7 @@ static int int_to_extended(uint32_t value, uint8_t* head, uint16_t* extended) {
 		*extended = value - 269;
 	}
 	else {
-		result = 0
+		result = 0;
 	}
 	return result;
 }
@@ -105,8 +105,8 @@ static int int_to_extended_to_int(uint8_t head, uint16_t extended, uint32_t* val
 	return result;
 }
 
-mc_options_list_t* mc_options_list_to_buffer(mc_options_list_t* list, mc_buffer_t* buffer) {
-	return list;
+mc_buffer_t* mc_options_list_to_buffer(mc_options_list_t* list, mc_buffer_t* buffer) {
+	return buffer;
 }
 
 mc_buffer_t* mc_options_list_mk_buffer(mc_options_list_t* list) {

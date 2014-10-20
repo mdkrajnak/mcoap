@@ -1,8 +1,8 @@
-#ifndef US_ENDIAN_TEST_H
-#define US_ENDIAN_TEST_H
+#ifndef MS_ENDIAN_TEST_H
+#define MS_ENDIAN_TEST_H
 
 #include "cutest/CuTest.h"
 
-CuSuite* us_endian_suite();
+CuSuite* ms_endian_suite();
 
 #endif
