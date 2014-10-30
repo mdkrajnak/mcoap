@@ -7,6 +7,7 @@
 
 #include "testmc/mc_code_test.h"
 #include "testmc/mc_header_test.h"
+#include "testmc/mc_options_list_test.h"
 
 #if defined(WIN32) && defined(_DEBUG)
 void dumpMemLeaks() {
@@ -39,6 +40,7 @@ void run_all_tests() {
 
     add_tmp_suite(suite, mc_code_suite());
     add_tmp_suite(suite, mc_header_suite());
+    add_tmp_suite(suite, mc_options_list_suite());
 
     CuSuiteRun(suite);
     

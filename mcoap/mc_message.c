@@ -23,7 +23,7 @@
 
 
 mc_message_t* mc_message_alloc() {
-    return (mc_message_t*)ms_calloc(1, sizeof(mc_message_t));
+    return ms_calloc(1, mc_message_t);
 }
 
 mc_message_t* mc_message_deinit(mc_message_t* message) {

@@ -18,13 +18,13 @@
 #define ms_free(ptr) free(ptr)
 
 /** Alloc fixed size block. */
-#define ms_malloc(size) malloc(size)
+#define ms_malloc(count, decl) (decl*)malloc(count * sizeof(decl))
 
 /** Alloc and clear a fixed size block. */
-#define ms_calloc(count, size) calloc(count, size)
+#define ms_calloc(count, decl) (decl*)calloc(count, sizeof(decl))
 
 /** Reallocate and existing block to a new size. */
-#define ms_realloc(ptr, size) realloc(ptr, size)
+#define ms_realloc(ptr, count, decl) (decl*)realloc(ptr, count*sizeof(decl))
 
 /** @} */
 
