@@ -61,8 +61,19 @@ mc_option_t* mc_option_init(mc_option_t* option, uint16_t option_num, uint32_t n
 }
 
 /**
+ * Initialize a mc_option_t struct with a C string.
+ * Note that the trailing null is not included.
+ */
+mc_option_t* mc_option_init_str(mc_option_t* option, uint16_t option_num, const char* value) {
+    option->option_num = option_num;
+    mc_buffer_init(&option->value, strlen(value), value);
+
+    return option;
+}
+
+/**
  * Initialize a mc_option_t struct with a uint32.
- * Note the value is stored in "in memory" format, no complession, no swapping.
+ * Note the value is stored in "in memory" format, no compression, no swapping.
  */
 mc_option_t* mc_option_init_uint32(mc_option_t* option, uint16_t option_num, uint32_t value) {
     option->option_num = option_num;
@@ -94,10 +105,10 @@ uint32_t mc_option_as_uint32(const mc_option_t* option) {
 		result = *option->value.bytes;
 	}
 	else if (option->value.nbytes == 2) {
-		result = ms_swap_u16((uint16_t)*option->value.bytes);
+		result = ms_swap_u16(*((uint16_t*)option->value.bytes));
 	}
 	else {
-		result = ms_swap_u32((uint32_t)*option->value.bytes);
+		result = ms_swap_u32(*((uint32_t*)option->value.bytes));
 	}
     return result;
 }

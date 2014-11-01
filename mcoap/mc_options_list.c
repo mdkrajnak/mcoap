@@ -5,6 +5,7 @@
  */
 
 #include <string.h>
+#include "msys/ms_copy.h"
 #include "msys/ms_memory.h"
 #include "msys/ms_endian.h"
 #include "mcoap/mc_options_list.h"
@@ -37,7 +38,7 @@ static int compare_options (const void * left, const void * right) {
 
 /** Sort an array of items by tag. */
 static void options_sort(uint32_t count, mc_option_t* items) {
-    qsort(items, count, sizeof(mc_options_list_t), compare_options);
+    qsort(items, count, sizeof(mc_option_t), compare_options);
 }
 
 mc_options_list_t* mc_options_list_init(mc_options_list_t* list, uint32_t noptions, mc_option_t* options) {
@@ -68,7 +69,7 @@ uint32_t mc_options_list_buffer_size(const mc_options_list_t* list) {
 /**
  * @return 1: if 4 bits, 2: +8 bits, 3: +16 bits. 0 if unable to convert
  */
-static int value_to_encoded_int(uint32_t value, uint8_t* head, uint16_t* extended) {
+static int value_to_encoded_int(uint16_t value, uint8_t* head, uint16_t* extended) {
 	int result;
 
 	if (value < 13) {
@@ -119,12 +120,49 @@ static int encoded_int_to_value(uint8_t head, uint16_t extended, uint16_t* value
 	return result;
 }
 
-static mc_buffer_t* option_to_buffer(mc_buffer_t* buffer, const mc_option_t* option, uint32_t prev_option_num, uint32_t* bpos) {
+static mc_buffer_t* uint8_to_buffer(mc_buffer_t* buffer, uint16_t extended, uint32_t* bpos) {
+	if ((buffer->nbytes - *bpos) < 1) return 0;
+
+	buffer->bytes[*bpos] = (uint8_t)extended;
+	(*bpos)++;
+
+	return buffer;
+}
+
+/* Note, performs swapping. */
+static mc_buffer_t* uint16_to_buffer(mc_buffer_t* buffer, uint16_t extended, uint32_t* bpos) {
+	if ((buffer->nbytes - *bpos) < 2) return 0;
+
+	uint16_t tmp = ms_swap_u16(extended);
+	memcpy(&(buffer->bytes[*bpos]), &tmp, 2);
+	(*bpos) += 2;
+
+	return buffer;
+}
+
+static mc_buffer_t* extended_num_to_buffer(mc_buffer_t* buffer, uint8_t head, uint16_t extended, uint32_t* bpos) {
+	if (head == 13) buffer = uint8_to_buffer(buffer, extended, bpos);
+	else if (head == 14) buffer = uint16_to_buffer(buffer, extended, bpos);
+	else if (head == 15) buffer = 0; /* Error. */
+
+	return buffer;
+}
+
+static mc_buffer_t* bytes_to_buffer(mc_buffer_t* dest, const mc_buffer_t* src, uint32_t* bpos) {
+	if ((dest->nbytes - *bpos) < src->nbytes) return 0;
+	memcpy(&(dest->bytes[*bpos]), src->bytes, src->nbytes);
+	(*bpos) += src->nbytes;
+
+	return dest;
+}
+
+
+static mc_buffer_t* option_to_buffer(mc_buffer_t* buffer, const mc_option_t* option, uint16_t prev_option_num, uint32_t* bpos) {
 	uint8_t num_head = 0;
 	uint16_t num_ext = 0;
 	uint8_t len_head = 0;
 	uint16_t len_ext = 0;
-	uint8_t delta = option->option_num - prev_option_num;
+	uint16_t delta = option->option_num - prev_option_num;
 
 	/** Check that there is at least 1 byte in the buffer. */
 	if ((buffer->nbytes - *bpos) < 1) return 0;
@@ -135,39 +173,17 @@ static mc_buffer_t* option_to_buffer(mc_buffer_t* buffer, const mc_option_t* opt
 	uint32_t lcode = value_to_encoded_int(option->value.nbytes, &len_head, &len_ext);
 	if (lcode == 0) return 0;
 
+	/* Compose the leading delta nibble and length nibble into an option "prefix" and place in buffer. */
 	uint8_t byte = (num_head << 4) | len_head;
 	buffer->bytes[*bpos] = byte;
 	(*bpos)++;
 
-	if (ncode == 2) {
-		if ((buffer->nbytes - *bpos) < 1) return 0;
-		buffer->bytes[*bpos] = (uint8_t)num_ext;
-		(*bpos)++;
-	}
-	else if (ncode == 3) {
-		if ((buffer->nbytes - *bpos) < 2) return 0;
-		uint16_t tmp = ms_swap_u16(num_ext);
-		memcpy(&(buffer->bytes[*bpos]), &tmp, 2);
-		(*bpos) += 2;
-	}
+	/* Put the extended option delta and length into the buffer, if needed. */
+	if (extended_num_to_buffer(buffer, num_head, num_ext, bpos) == 0) return 0;
+	if (extended_num_to_buffer(buffer, len_head, len_ext, bpos) == 0) return 0;
 
-	if (lcode == 2) {
-		if ((buffer->nbytes - *bpos) < 1) return 0;
-		buffer->bytes[*bpos] = (uint8_t)len_ext;
-		(*bpos)++;
-	}
-	else if (lcode == 3) {
-		if ((buffer->nbytes - *bpos) < 2) return 0;
-		uint16_t tmp = ms_swap_u16(len_ext);
-		memcpy(&(buffer->bytes[*bpos]), &tmp, 2);
-		(*bpos) += 2;
-	}
-
-	if ((buffer->nbytes - *bpos) < option->value.nbytes) return 0;
-	memcpy(&(buffer->bytes[*bpos]), option->value.bytes, option->value.nbytes);
-	(*bpos) += option->value.nbytes;
-
-	return buffer;
+	/* Put the payload into the buffer, returns 0 if not enough room. */
+	return bytes_to_buffer(buffer, &option->value, bpos);
 }
 
 /**
@@ -175,6 +191,7 @@ static mc_buffer_t* option_to_buffer(mc_buffer_t* buffer, const mc_option_t* opt
  *
  * In the case of a failure we want to know the buffer position where the problem occurred.
  * This means we need a different field to indicate failure.
+ *
  * To that end we return a pointer to the buffer with 0 for failure and pass the
  * position in by reference.
  */
@@ -216,58 +233,6 @@ mc_buffer_t* mc_options_list_mk_buffer(const mc_options_list_t* list) {
 	return buffer;
 }
 
-static uint32_t count_options(const mc_buffer_t* buffer) {
-	uint8_t byte;
-	uint8_t delta;
-	uint8_t len;
-	uint16_t extended;
-	uint16_t value;
-	uint32_t used = 0;
-	uint32_t total = 0;
-
-	/* Minimum buffer size is 3, one byte for the lead dela/len header, */
-	/* one byte for the data, and one byte for the terminating 0xff. */
-	if (buffer->nbytes < 4) return 0;
-	byte = buffer->bytes[used];
-	used++;
-
-	while (byte != 0xff) {
-		delta = byte >> 4;
-		len = byte & 0x0f;
-
-		/* Skip the extended part of the option delta. */
-		if (delta == 13) {
-			used += 1;
-		}
-		else if (delta == 14) {
-			used+=2;
-		}
-
-		/* Extract the option length and skip over it. */
-		if (len == 13) {
-			extended = buffer->bytes[used];
-			used++;
-			encoded_int_to_value(len, extended, &value);
-			used += value;
-		}
-		else if (len == 14) {
-			memcpy(&extended, buffer->bytes + used, 2);
-			used += 2;
-			extended = ms_swap_u16(extended);
-			encoded_int_to_value(len, extended, &value);
-			used += value;
-		}
-
-		/* Check to see if implied size overflows the remaining bytes in the buffer. */
-		if (used > buffer->nbytes) return 0;
-
-		byte = buffer->bytes[used];
-		used++;
-	}
-
-	return total;
-}
-
 /** How to signal an error? */
 static uint16_t option_num_from_buffer(const mc_buffer_t* buffer, uint8_t prefix, uint32_t* bpos) {
 	uint16_t extended;
@@ -279,7 +244,7 @@ static uint16_t option_num_from_buffer(const mc_buffer_t* buffer, uint8_t prefix
 		encoded_int_to_value(prefix, extended, &value);
 	}
 	else if (prefix == 14) {
-		extended = mc_buffer_next_uint16(buffer, bpos);
+		extended = ms_swap_u16(mc_buffer_next_uint16(buffer, bpos));
 		encoded_int_to_value(prefix, extended, &value);
 	}
 	else {
@@ -287,6 +252,47 @@ static uint16_t option_num_from_buffer(const mc_buffer_t* buffer, uint8_t prefix
 	}
 
 	return value;
+}
+
+static uint32_t count_options(const mc_buffer_t* buffer, uint32_t bpos) {
+	uint8_t byte;
+	uint8_t delta;
+	uint8_t len;
+	uint16_t extended;
+	uint32_t total = 0;
+
+	/* Minimum buffer size is 3, one byte for the lead dela/len header, */
+	/* one byte for the data, and one byte for the terminating 0xff. */
+	if (buffer->nbytes < 4) return 0;
+	byte = buffer->bytes[bpos];
+	bpos++;
+
+	while (byte != 0xff) {
+		delta = byte >> 4;
+		len = byte & 0x0f;
+
+		/* Skip the extended part of the option delta. */
+		if (delta == 13) {
+			bpos += 1;
+		}
+		else if (delta == 14) {
+			bpos+=2;
+		}
+
+		/* Extract the option length and skip over it. */
+		extended = option_num_from_buffer(buffer, len, &bpos);
+		bpos += extended;
+
+		/* Check to see if implied size overflows the remaining bytes in the buffer. */
+		if (bpos > buffer->nbytes) return 0;
+
+		byte = buffer->bytes[bpos];
+		bpos++;
+
+		total++;
+	}
+
+	return total;
 }
 
 static mc_option_t* option_from_buffer(mc_option_t* option, const mc_buffer_t* buffer, uint16_t prevnum, uint32_t* bpos) {
@@ -312,7 +318,7 @@ static mc_option_t* option_from_buffer(mc_option_t* option, const mc_buffer_t* b
 	optlen = option_num_from_buffer(buffer, len, bpos);
 	optbytes = mc_buffer_next_ptr(buffer, optlen, bpos);
 
-	return mc_option_init(option, optnum, optlen, optbytes);
+	return mc_option_init(option, optnum, optlen, ms_copy_uint8(optlen, optbytes));
 }
 
 /** @return pointer to created list buffer or 0 if failure. */
@@ -322,7 +328,7 @@ mc_options_list_t* mc_buffer_to_option_list(const mc_buffer_t* buffer, uint32_t*
 	uint16_t prevnum;
 	uint32_t ioption;
 	uint32_t apos = 0;
-	uint32_t noptions = count_options(buffer);
+	uint32_t noptions = count_options(buffer, *bpos);
 
 	if (noptions == 0) return 0;
 	options = mc_option_nalloc(noptions);
