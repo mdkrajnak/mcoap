@@ -10,6 +10,8 @@
 #include "msys/ms_memory.h"
 #include "mcoap/mc_option.h"
 
+#include <string.h>
+
 /**
  * Allocate a mc_option_t struct.
  */
@@ -64,9 +66,9 @@ mc_option_t* mc_option_init(mc_option_t* option, uint16_t option_num, uint32_t n
  * Initialize a mc_option_t struct with a C string.
  * Note that the trailing null is not included.
  */
-mc_option_t* mc_option_init_str(mc_option_t* option, uint16_t option_num, const char* value) {
+mc_option_t* mc_option_init_str(mc_option_t* option, uint16_t option_num, char* value) {
     option->option_num = option_num;
-    mc_buffer_init(&option->value, strlen(value), value);
+    mc_buffer_init(&option->value, strlen(value), (uint8_t*)value);
 
     return option;
 }
