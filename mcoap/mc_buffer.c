@@ -67,4 +67,19 @@ uint8_t* mc_buffer_next_ptr(const mc_buffer_t* buffer, uint32_t len, uint32_t* b
 	return ptr;
 }
 
+mc_buffer_t* mc_buffer_copy_to(mc_buffer_t* dest, uint32_t* bpos, const mc_buffer_t* src) {
+	if (dest == 0) return dest;
+	if (src == 0) return dest;
+
+	/* Make sure there's enough room, if not copy nothing. */
+	/* Caller must check bpos to see if anything is written. */
+	if ((*bpos + src->nbytes) > dest->nbytes) return dest;
+
+	if (src->nbytes > 0) {
+		memcpy(&dest->bytes[*bpos], src->bytes, src->nbytes);
+		bpos += src->nbytes;
+	}
+	return dest;
+}
+
 /** @} */

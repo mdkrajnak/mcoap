@@ -3,7 +3,7 @@
 
 /**
  * @file
- * @defgroup mc_token.h mc_token.h
+ * @defgroup token CoAP Tokens
  * @{
  */
 

@@ -4,7 +4,10 @@
  * @{
  */
 
+#include <string.h>
+
 #include "msys/ms_memory.h"
+#include "msys/ms_endian.h"
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_header.h"
 #include "mcoap/mc_buffer.h"
@@ -113,15 +116,43 @@ uint16_t mc_message_get_message_id(mc_message_t* message) {
 }
 
 uint32_t mc_message_buffer_size(mc_message_t* message) {
-    return 0;
+	uint32_t size;
+
+	if (message == 0) return 0;
+
+	size = sizeof(message->header);
+	size += message->token.nbytes;
+	size += mc_options_list_buffer_size(&message->options);
+	size += message->payload.nbytes;
+
+    return size;
 }
 
 mc_buffer_t* mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
-    return 0;
+	uint32_t bpos = 0;
+	uint32_t tmp = ms_swap_u64(message->header);
+
+	if (mc_message_buffer_size(message) > buffer->nbytes) return 0;
+
+	memcpy(buffer->bytes, &tmp, sizeof(uint32_t));
+	bpos += sizeof(message->header);
+
+	if (mc_buffer_copy_to(buffer, &bpos, &message->token) == 0) return 0;
+
+	if (mc_options_list_to_buffer(&message->options, buffer, &bpos) == 0) return 0;
+
+	if (mc_buffer_copy_to(buffer, &bpos, &message->payload) == 0) return 0;
+
+    return buffer;
 }
 
 mc_buffer_t* mc_message_mk_buffer(mc_message_t* message) {
-    return 0;
+	uint32_t count;
+
+	if (message == 0) return 0;
+
+	count = mc_message_buffer_size(message);
+	return mc_buffer_init(mc_buffer_alloc(), count, ms_calloc(count, uint8_t));
 }
 
 /** @} */

@@ -50,11 +50,14 @@ mc_options_list_t* mc_options_list_init(mc_options_list_t* list, uint32_t noptio
 }
 
 uint32_t mc_options_list_buffer_size(const mc_options_list_t* list) {
-	mc_option_t* current = list->options;
+	mc_option_t* current;
+	uint32_t noption;
 	uint32_t prev_option_num = 0;
 	uint32_t size = 0;
-	uint32_t noption;
 
+	if (list == 0) return 0;
+
+	current = list->options;
 	for (noption = 0; noption < list->noptions; noption++) {
 		size += mc_option_buffer_size(current, prev_option_num);
 		prev_option_num = current->option_num;
@@ -217,7 +220,6 @@ mc_buffer_t* mc_options_list_to_buffer(const mc_options_list_t* list, mc_buffer_
 	/* Put the end of option list marker on. */
 	buffer->bytes[*bpos] = 0xff;
 	(*bpos)++;
-	buffer->bytes[*bpos] = 0xff;
 
 	return buffer;
 }

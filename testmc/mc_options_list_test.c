@@ -171,7 +171,7 @@ static void test_options_list_buffer_roundtrip(CuTest* tc) {
 	mc_option_init_uint32(options    , 1, 0x00000001);
 	mc_option_init_uint32(options + 1, 2, 0x00000100);
 	mc_option_init_uint32(options + 2, 3, 0x00010000);
-	mc_option_init_str(options + 3,    4, ms_copy_char(4, "coap"));
+	mc_option_init_str(options + 3,    4, ms_copy_str("coap"));
 	mc_option_init(options + 4,        5, 1, (uint8_t*)ms_copy_uint8(1, &temp));
 
     mc_options_list_t* list = mc_options_list_init(mc_options_list_alloc(), 5, options);
@@ -212,6 +212,7 @@ static void test_options_list_buffer_roundtrip(CuTest* tc) {
 
     free(mc_options_list_deinit(list));
     free(mc_buffer_deinit(buffer));
+    free(mc_options_list_deinit(result));
 }
 
 /* Run all of the tests in this test suite. */
