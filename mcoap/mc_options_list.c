@@ -5,6 +5,8 @@
  */
 
 #include <string.h>
+#include <stdarg.h>
+
 #include "msys/ms_copy.h"
 #include "msys/ms_memory.h"
 #include "msys/ms_endian.h"
@@ -47,6 +49,25 @@ mc_options_list_t* mc_options_list_init(mc_options_list_t* list, uint32_t noptio
     if (options) options_sort(list->noptions, list->options);
 
 	return list;
+}
+
+mc_options_list_t* mc_options_list_vinit(mc_options_list_t* list, uint32_t noptions, ...) {
+    va_list argp;
+	uint32_t ioption;
+	mc_option_t* option;
+    mc_option_t* options = mc_option_nalloc(noptions);
+
+    va_start(argp, noptions);
+    for (ioption = 0; ioption < noptions; ioption++) {
+        option = va_arg(argp, mc_option_t*);
+        memcpy(options + ioption, option, sizeof(mc_option_t));
+
+        /* Free the pointer but not the contents. */
+        free(option);
+    }
+    va_end(argp);
+
+    return mc_options_list_init(list, noptions, options);
 }
 
 uint32_t mc_options_list_buffer_size(const mc_options_list_t* list) {

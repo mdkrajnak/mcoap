@@ -163,6 +163,33 @@ static void test_options_list_u32_write_to_buffer(CuTest* tc) {
  *  When we serialize it to a buffer,
  *  Then the buffer contains the bytes we would expect for the wire format.
  */
+static void test_options_list_vinit(CuTest* tc) {
+	mc_options_list_t* list = mc_options_list_vinit(
+		mc_options_list_alloc(),
+		3,
+		mc_option_init_uint32(mc_option_alloc(), 1, 1),
+		mc_option_init_uint32(mc_option_alloc(), 2, 256),
+		mc_option_init_uint32(mc_option_alloc(), 3, 65536));
+
+    CuAssert(tc, "size is 3", list->noptions == 3);
+
+    CuAssert(tc, "option[0] num is 1", list->options[0].option_num == 1);
+    CuAssert(tc, "option[0] val is 1", mc_option_as_uint32(&list->options[0]) == 1);
+
+    CuAssert(tc, "option[1] num is 2", list->options[1].option_num == 2);
+    CuAssert(tc, "option[1] val is 256", mc_option_as_uint32(&list->options[1]) == 256);
+
+    CuAssert(tc, "option[2] num is 3", list->options[2].option_num == 3);
+    CuAssert(tc, "option[2] val is 65536", mc_option_as_uint32(&list->options[2]) == 65536);
+
+    free(mc_options_list_deinit(list));
+}
+
+/**
+ *  Given an option list with two uint16 sized options ,
+ *  When we serialize it to a buffer,
+ *  Then the buffer contains the bytes we would expect for the wire format.
+ */
 static void test_options_list_buffer_roundtrip(CuTest* tc) {
 // test_options_list_buffer_roundtrip(CuTest* tc) {
 	uint32_t bpos = 0;
@@ -223,6 +250,7 @@ CuSuite* mc_options_list_suite() {
     SUITE_ADD_TEST(suite, test_options_list_u8_write_to_buffer);
     SUITE_ADD_TEST(suite, test_options_list_u16_write_to_buffer);
     SUITE_ADD_TEST(suite, test_options_list_u32_write_to_buffer);
+    SUITE_ADD_TEST(suite, test_options_list_vinit);
     SUITE_ADD_TEST(suite, test_options_list_buffer_roundtrip);
 
     return suite;
