@@ -85,8 +85,6 @@ uint32_t mc_options_list_buffer_size(const mc_options_list_t* list) {
 		current++;
 	}
 
-	/* Increment by 1 for the 0xff at the end of the buffer list. */
-	size++;
 	return size;
 }
 
@@ -238,10 +236,6 @@ mc_buffer_t* mc_options_list_to_buffer(const mc_options_list_t* list, mc_buffer_
 		prev_option_num = list->options[ioption].option_num;
 	}
 
-	/* Put the end of option list marker on. */
-	buffer->bytes[*bpos] = 0xff;
-	(*bpos)++;
-
 	return buffer;
 }
 
@@ -287,10 +281,14 @@ static uint32_t count_options(const mc_buffer_t* buffer, uint32_t bpos) {
 	/* Minimum buffer size is 3, one byte for the lead dela/len header, */
 	/* one byte for the data, and one byte for the terminating 0xff. */
 	if (buffer->nbytes < 4) return 0;
-	byte = buffer->bytes[bpos];
-	bpos++;
 
-	while (byte != 0xff) {
+	while (bpos < buffer->nbytes) {
+		byte = buffer->bytes[bpos];
+		bpos++;
+
+		/* If beginning of payload marker exit loop. */
+		if (byte == 0xff) break;
+
 		delta = byte >> 4;
 		len = byte & 0x0f;
 
@@ -308,9 +306,6 @@ static uint32_t count_options(const mc_buffer_t* buffer, uint32_t bpos) {
 
 		/* Check to see if implied size overflows the remaining bytes in the buffer. */
 		if (bpos > buffer->nbytes) return 0;
-
-		byte = buffer->bytes[bpos];
-		bpos++;
 
 		total++;
 	}

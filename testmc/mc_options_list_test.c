@@ -56,7 +56,7 @@ static void test_options_list_u8_write_to_buffer(CuTest* tc) {
     uint32_t nbytes = mc_options_list_buffer_size(list);
     mc_buffer_t* buffer = mc_buffer_init(mc_buffer_alloc(), nbytes, ms_calloc(nbytes, uint8_t));
 
-    CuAssert(tc, "size is 5", nbytes == 5);
+    CuAssert(tc, "size is 4", nbytes == 4);
     mc_options_list_to_buffer(list, buffer, &bpos);
 
     write_bytes(stdout, buffer->nbytes, buffer->bytes);
@@ -93,7 +93,7 @@ static void test_options_list_u16_write_to_buffer(CuTest* tc) {
     uint32_t nbytes = mc_options_list_buffer_size(list);
     mc_buffer_t* buffer = mc_buffer_init(mc_buffer_alloc(), nbytes, ms_calloc(nbytes, uint8_t));
 
-    CuAssert(tc, "size is 7", nbytes == 7);
+    CuAssert(tc, "size is 6", nbytes == 6);
     mc_options_list_to_buffer(list, buffer, &bpos);
 
     write_bytes(stdout, buffer->nbytes, buffer->bytes);
@@ -131,7 +131,7 @@ static void test_options_list_u32_write_to_buffer(CuTest* tc) {
     uint32_t nbytes = mc_options_list_buffer_size(list);
     mc_buffer_t* buffer = mc_buffer_init(mc_buffer_alloc(), nbytes, ms_calloc(nbytes, uint8_t));
 
-    CuAssert(tc, "size is 11", nbytes == 11);
+    CuAssert(tc, "size is 10", nbytes == 10);
     mc_options_list_to_buffer(list, buffer, &bpos);
 
     write_bytes(stdout, buffer->nbytes, buffer->bytes);
@@ -206,7 +206,7 @@ static void test_options_list_buffer_roundtrip(CuTest* tc) {
     uint32_t nbytes = mc_options_list_buffer_size(list);
     mc_buffer_t* buffer = mc_buffer_init(mc_buffer_alloc(), nbytes, ms_calloc(nbytes, uint8_t));
 
-    CuAssert(tc, "size is 18", nbytes == 18);
+    CuAssert(tc, "size is 17", nbytes == 17);
     mc_options_list_to_buffer(list, buffer, &bpos);
 
     write_bytes(stdout, buffer->nbytes, buffer->bytes);

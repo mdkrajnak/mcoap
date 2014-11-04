@@ -29,10 +29,6 @@ mc_message_t* mc_message_alloc() {
     return ms_calloc(1, mc_message_t);
 }
 
-mc_message_t* mc_message_deinit(mc_message_t* message) {
-    return 0;
-}
-
 mc_message_t* mc_message_init(
     mc_message_t* message,
     uint8_t version,
@@ -95,6 +91,10 @@ mc_message_t* mc_message_rst_init(
 	return mc_message_init(message, MESSAGE_VERSION, RESET, code, message_id, token, options, payload);
 }
     
+mc_message_t* mc_message_deinit(mc_message_t* message) {
+    return 0;
+}
+
 uint8_t mc_message_get_version(mc_message_t* message) {
     return mc_header_get_version(message->header);
 }
@@ -140,6 +140,11 @@ mc_buffer_t* mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	if (mc_buffer_copy_to(buffer, &bpos, &message->token) == 0) return 0;
 
 	if (mc_options_list_to_buffer(&message->options, buffer, &bpos) == 0) return 0;
+
+	if (message->payload.nbytes > 0) {
+		buffer->bytes[bpos] = 0xff;
+		bpos++;
+	}
 
 	if (mc_buffer_copy_to(buffer, &bpos, &message->payload) == 0) return 0;
 

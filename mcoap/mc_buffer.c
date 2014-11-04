@@ -20,7 +20,6 @@ mc_buffer_t* mc_buffer_alloc() {
  */
 mc_buffer_t* mc_buffer_init(mc_buffer_t* buffer, uint32_t nbytes, uint8_t* bytes) {
     buffer->nbytes = nbytes;
-    if (buffer->bytes) ms_free(buffer->bytes);
     buffer->bytes = bytes;
 
     return buffer;
