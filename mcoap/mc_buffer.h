@@ -20,6 +20,7 @@ mc_buffer_t* mc_buffer_deinit(mc_buffer_t* buffer);
 mc_buffer_t* mc_buffer_init(mc_buffer_t* buffer, uint32_t nbytes, uint8_t* bytes);
 uint8_t mc_buffer_next_uint8(const mc_buffer_t* buffer, uint32_t* bpos);
 uint16_t mc_buffer_next_uint16(const mc_buffer_t* buffer, uint32_t* bpos);
+uint32_t mc_buffer_next_uint32(const mc_buffer_t* buffer, uint32_t* bpos);
 uint8_t* mc_buffer_next_ptr(const mc_buffer_t* buffer, uint32_t len, uint32_t* bpos);
 mc_buffer_t* mc_buffer_copy_to(mc_buffer_t* buffer, uint32_t* bpos, const mc_buffer_t* src);
 

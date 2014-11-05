@@ -54,8 +54,19 @@ uint16_t mc_buffer_next_uint16(const mc_buffer_t* buffer, uint32_t* bpos) {
 }
 
 /* Note, no swapping. */
+uint32_t mc_buffer_next_uint32(const mc_buffer_t* buffer, uint32_t* bpos) {
+	uint32_t result;
+
+	memcpy(&(buffer->bytes[*bpos]), &result, 4);
+	(*bpos) += 4;
+
+	return result;
+}
+
+/* Note, no swapping. */
 uint8_t* mc_buffer_next_ptr(const mc_buffer_t* buffer, uint32_t len, uint32_t* bpos) {
 	uint8_t* ptr;
+
 
 	/* Make sure there is enough bytes */
 	if ((buffer->nbytes - len - *bpos) < 0) return 0;
