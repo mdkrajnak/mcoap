@@ -321,9 +321,8 @@ static mc_option_t* option_from_buffer(mc_option_t* option, const mc_buffer_t* b
 	uint8_t delta;
 	uint8_t len;
 
-	/* Minimum buffer size is 3, one byte for the lead dela/len header, */
-	/* one byte for the data, and one byte for the terminating 0xff. */
-	if (buffer->nbytes < 4) return 0;
+	/* Minimum buffer size is 1, one byte for the lead delta/len header. */
+	if (buffer->nbytes < 1) return 0;
 
 	byte = mc_buffer_next_uint8(buffer, bpos);
 
@@ -340,19 +339,21 @@ static mc_option_t* option_from_buffer(mc_option_t* option, const mc_buffer_t* b
 }
 
 /** @return pointer to created list buffer or 0 if failure. */
-mc_options_list_t* mc_buffer_to_option_list(const mc_buffer_t* buffer, uint32_t* bpos) {
+mc_options_list_t* mc_options_list_from_buffer(mc_options_list_t* list, mc_buffer_t* buffer, uint32_t* bpos) {
 	mc_option_t* options;
 	mc_option_t* current;
 	uint16_t prevnum;
 	uint32_t ioption;
+	uint32_t noptions;
 	uint32_t apos = 0;
-	uint32_t noptions = count_options(buffer, *bpos);
-
-	if (noptions == 0) return 0;
-	options = mc_option_nalloc(noptions);
 
 	/* Use position 0 if buffer position not specified. */
 	if (bpos == 0) bpos = &apos;
+
+	noptions = count_options(buffer, *bpos);
+
+	if (noptions == 0) return 0;
+	options = mc_option_nalloc(noptions);
 
 	current = options;
 	current = option_from_buffer(current, buffer, 0, bpos);
@@ -365,7 +366,7 @@ mc_options_list_t* mc_buffer_to_option_list(const mc_buffer_t* buffer, uint32_t*
 		if (current == 0) return 0;
 	}
 
-	return mc_options_list_init(mc_options_list_alloc(), noptions, options);
+	return mc_options_list_init(list, noptions, options);
 }
 
 /** @} */

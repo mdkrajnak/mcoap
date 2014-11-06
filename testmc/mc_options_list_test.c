@@ -212,7 +212,7 @@ static void test_options_list_buffer_roundtrip(CuTest* tc) {
     write_bytes(stdout, buffer->nbytes, buffer->bytes);
 
     bpos = 0;
-    mc_options_list_t* result = mc_buffer_to_option_list(buffer, &bpos);
+    mc_options_list_t* result = mc_options_list_from_buffer(mc_options_list_alloc(), buffer, &bpos);
 
     CuAssert(tc, "result != 0", result != 0);
     CuAssert(tc, "There are 5 options", result->noptions == 5);

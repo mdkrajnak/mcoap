@@ -8,6 +8,8 @@
 
 #include "msys/ms_memory.h"
 #include "msys/ms_endian.h"
+#include "msys/ms_log.h"
+#include "mcoap/mc_options_list.h"
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_header.h"
 #include "mcoap/mc_buffer.h"
@@ -130,34 +132,82 @@ uint32_t mc_message_buffer_size(mc_message_t* message) {
 
 mc_buffer_t* mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	uint32_t bpos = 0;
-	uint32_t tmp = ms_swap_u64(message->header);
+	uint32_t src_pos = 0;
+	uint32_t tmp = ms_swap_u32(message->header);
 
-	if (mc_message_buffer_size(message) > buffer->nbytes) return 0;
+	if (mc_message_buffer_size(message) > buffer->nbytes) {
+		ms_log_debug("buffer is too small small for message, %d < %d", buffer->nbytes, mc_message_buffer_size(message));
+		return 0;
+	}
 
 	memcpy(buffer->bytes, &tmp, sizeof(uint32_t));
 	bpos += sizeof(message->header);
 
-	if (mc_buffer_copy_to(buffer, &bpos, &message->token) == 0) return 0;
+	if (mc_buffer_copy_to(buffer, message->token.nbytes, &bpos, &message->token, &src_pos) == 0) return 0;
 
 	if (mc_options_list_to_buffer(&message->options, buffer, &bpos) == 0) return 0;
 
+	/* If there is a payload, append the start of payload marker and the payload. */
 	if (message->payload.nbytes > 0) {
 		buffer->bytes[bpos] = 0xff;
 		bpos++;
+
+		if (mc_buffer_copy_to(buffer, message->payload.nbytes, &bpos, &message->payload, 0) == 0) return 0;
 	}
 
-	if (mc_buffer_copy_to(buffer, &bpos, &message->payload) == 0) return 0;
 
     return buffer;
 }
 
-mc_buffer_t* mc_message_mk_buffer(mc_message_t* message) {
-	uint32_t count;
+mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer, uint32_t* bpos) {
+	uint32_t header;
+	uint32_t remaining;
+	uint32_t marker;
+	uint32_t pllen;
+	uint32_t tklen;
+	uint8_t* tkdata = 0;
+	uint32_t apos = 0;
 
 	if (message == 0) return 0;
+	if (buffer == 0) return 0;
 
-	count = mc_message_buffer_size(message);
-	return mc_buffer_init(mc_buffer_alloc(), count, ms_calloc(count, uint8_t));
+	/* Must have enough bytes for the header. */
+	if (buffer->nbytes < 4) {
+		ms_log_debug("buffer is less than the minimum size (4): %d", buffer->nbytes);
+		return 0;
+	}
+
+	/* If no bpos pointer passed in, start at beginning of buffer. */
+	if (bpos == 0) bpos = &apos;
+
+	/* Read message components. */
+	header = ms_swap_u32(mc_buffer_next_uint32(buffer, bpos));
+	tklen = mc_header_get_token_length(header);
+	tkdata = mc_buffer_next_ptr(buffer, tklen, bpos);
+	mc_buffer_init(&message->token, tklen, ms_copy_uint8(tklen, tkdata));
+
+	mc_options_list_from_buffer(&message->options, buffer, bpos);
+
+	remaining = buffer->nbytes - *bpos;
+
+	if (remaining > 1) {
+		/* Advance past beginning of payload marker. */
+		marker = buffer->bytes[*bpos];
+		if (marker != 0xff) {
+			ms_log_debug("Invalid beginning of payload marker: 0x%x", marker);
+			return 0;
+		}
+		bpos++;
+
+		pllen = remaining - 1;
+		mc_buffer_init(&message->payload, pllen, ms_calloc(pllen, uint8_t));
+
+		if (mc_buffer_copy_to(&message->payload, pllen, 0, buffer, bpos) == 0) return 0;
+	}
+
+	/* Todo, should we check the header version? */
+
+	return message;
 }
 
 /** @} */

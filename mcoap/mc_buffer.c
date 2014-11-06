@@ -77,19 +77,49 @@ uint8_t* mc_buffer_next_ptr(const mc_buffer_t* buffer, uint32_t len, uint32_t* b
 	return ptr;
 }
 
-mc_buffer_t* mc_buffer_copy_to(mc_buffer_t* dest, uint32_t* bpos, const mc_buffer_t* src) {
+/** Copy without performing size checks. */
+static mc_buffer_t* copy_to(mc_buffer_t* dest, uint32_t len, uint32_t* dpos, const mc_buffer_t* src, uint32_t* spos) {
+	memcpy(&dest->bytes[*dpos], &src->bytes[*spos], len);
+	*dpos += len;
+	*spos += len;
+
+	return dest;
+}
+
+mc_buffer_t* mc_buffer_copy_to(mc_buffer_t* dest, uint32_t len, uint32_t* dpos, const mc_buffer_t* src, uint32_t* spos) {
+	uint32_t dzero = 0;
+	uint32_t szero = 0;
+
 	if (dest == 0) return dest;
 	if (src == 0) return dest;
 
+	/* Use zero as default dest/src position. */
+	if (dpos == 0) dpos = &dzero;
+	if (spos == 0) spos = &szero;
+
 	/* Make sure there's enough room, if not copy nothing. */
 	/* Caller must check bpos to see if anything is written. */
-	if ((*bpos + src->nbytes) > dest->nbytes) return dest;
+	if (dest->nbytes < *dpos) return dest;
+	if ((dest->nbytes - *dpos) < len) return dest;
 
-	if (src->nbytes > 0) {
-		memcpy(&dest->bytes[*bpos], src->bytes, src->nbytes);
-		bpos += src->nbytes;
-	}
-	return dest;
+	if (src->nbytes < *spos) return dest;
+	if ((src->nbytes - *spos) < len) return dest;
+
+	return copy_to(dest, len, dpos, src, spos);
+}
+
+mc_buffer_t* mc_buffer_copy(const mc_buffer_t* src, uint32_t len, uint32_t* spos) {
+	mc_buffer_t* result;
+	uint32_t zero = 0;
+
+	if (src == 0) return 0;
+	if (spos == 0) spos = &zero;
+
+	if (src->nbytes < *spos) return 0;
+	if ((src->nbytes - *spos) < len) return 0;
+
+	result = mc_buffer_init(mc_buffer_alloc(), len, ms_calloc(len, uint8_t));
+	return copy_to(result, len, 0, src, spos);
 }
 
 /** @} */
