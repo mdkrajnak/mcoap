@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include "msys/ms_memory.h"
+#include "msys/ms_copy.h"
 #include "msys/ms_endian.h"
 #include "msys/ms_log.h"
 #include "mcoap/mc_options_list.h"
