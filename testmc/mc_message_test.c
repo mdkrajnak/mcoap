@@ -159,6 +159,7 @@ CuSuite* mc_message_suite() {
 
     SUITE_ADD_TEST(suite, test_empty_message_to_buffer);
     SUITE_ADD_TEST(suite, test_message_to_buffer);
-
+    SUITE_ADD_TEST(suite, test_message_roundtrip);
+    
     return suite;
 }
