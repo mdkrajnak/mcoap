@@ -17,9 +17,15 @@
 
 #include "mnet/mn_timeout.h"
 
-/* Typedef sockaddr,hostent to an _t name. */
+/*
+ * typdef some standard socket structs to _t names for convenience,
+ * but without the mn_ prefix.We name sockaddr_in structs inetaddr_t.
+ */
 typedef struct sockaddr sockaddr_t;
 typedef struct hostent hostent_t;
+
+/* Function for initializing inetaddr_t structs from a hostname and port number. */
+sockaddr_t* mn_inetaddr_init(sockaddr_t* local, const char *hostname, unsigned short port);
 
 /* Define an abstact socket interface. */
 int mn_socket_open();

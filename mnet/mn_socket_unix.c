@@ -5,10 +5,10 @@
  */
 
 /* Socket  module for Unix */
-#ifndef _WIN32
 #include <string.h> 
 #include <signal.h>
 
+#include "msys/ms_memory.h"
 #include "mnet/mn_socket.h"
 
 /*
@@ -77,7 +77,7 @@ int mn_socket_waitfd(mn_socket_t* sock, int sw, mn_timeout_t* tout) {
  * Initializes module 
  */
 int mn_socket_open() {
-    /* instals a handler to ignore sigpipe or it will crash us */
+    /* Installs a handler to ignore sigpipe or it will crash us */
     signal(SIGPIPE, SIG_IGN);
     return MN_DONE;
 }
@@ -114,9 +114,60 @@ int mn_socket_create(mn_socket_t* sock, int domain, int type, int protocol) {
 }
 
 /**
+ * Convert a host name to an in_addr structure.
+ * First assume its an IPv4 decimal dotted address, if not
+ * try looking it up by name.
+ * @return MN_DONE on success.
+ */
+static int host2addr(struct in_addr* addr, const char* hostname) {
+	int err;
+	int success;
+
+	/* Try to convert from decimal dotted form to address. */
+	success = inet_pton(AF_INET, hostname, addr);
+
+	/* If conversion failed assume it is a hostname and look it up. */
+	if (!success) {
+		hostent_t* hostent = NULL;
+		in_addr_t** inaddr;
+
+		err = mn_gethostbyname(hostname, &hostent);
+		if (err != MN_DONE) return err;
+
+		inaddr = (in_addr_t**)hostent->h_addr_list;
+		memcpy(addr, *inaddr, sizeof(in_addr_t));
+	}
+	return MN_DONE;
+}
+
+/**
+ * Initialize an internet address structure.
+ * If the hostname is the * wildcard we use INADDR_ANY for the address.
+ * @return pointer to the initialized address or 0.
+ */
+inet4addr_t* mn_inetaddr_init(sockaddr_t* addr, const char *hostname, unsigned short port) {
+    int err;
+
+    if (!addr) return 0;
+
+    addr->sin_port = htons(port);
+
+    if (strcmp(hostname, "*")) {
+    	addr->sin_family = AF_INET;
+    	err = host2addr(&addr->sin_addr, hostname);
+        if (err != MN_DONE) return 0;
+    }
+    else {
+    	addr->sin_addr.s_addr = htonl(INADDR_ANY);
+    }
+    return addr;
+}
+
+
+/**
  * Binds or returns error message
  */
-int mn_socket_bind(mn_socket_t* sock, sockaddr_t *addr, socklen_t len) {
+int mn_socket_bind(mn_socket_t* sock, sockaddr_t* addr, socklen_t len) {
     int err = MN_DONE;
     mn_socket_setblocking(sock);
     if (bind(*sock, addr, len) < 0) err = errno; 
@@ -363,7 +414,7 @@ const char *mn_hoststrerror(int err) {
     if (err <= 0) return mn_strerror(err);
     switch (err) {
         case HOST_NOT_FOUND: return "host not found";
-        default: return hstrerror(err);
+        default: return strerror(err);
     }
 }
 
@@ -385,6 +436,5 @@ const char *mn_socket_ioerror(mn_socket_t* sock, int err) {
     (void) sock;
     return mn_strerror(err);
 } 
-#endif
 
 /** @} */

@@ -6,7 +6,7 @@
 
 /**
  * @file
- * @ingroup copy_util 
+ * @ingroup copy_util
  * @{
  * This file contains the implementations for the functions defined in ms_copy_util.h.
  */
@@ -15,10 +15,10 @@
 char* ms_copy_str(const char* str) {
     char* result = 0;
     size_t len;
- 
+
     if (str == 0) return result;
     len = strlen(str) + 1;
-    
+
     result = ms_malloc(len, char);
     return strncpy(result, str, len);
 }
@@ -38,7 +38,7 @@ char* ms_copy_char(uint32_t count, const char* data) {
     return result;
 }
 
-/** 
+/**
  * Allocate and copy an array of chars assuming utf-8 encoding.
  * Implementation-wise this can be identical to copy for chars.
  */
@@ -107,28 +107,6 @@ uint32_t* ms_copy_uint32(uint32_t count, const uint32_t* data) {
 
 /** Allocate and copy an array of uint64's. */
 uint64_t* ms_copy_uint64(uint32_t count, const uint64_t* data) {
-    size_t len = count * sizeof(uint64_t);
-    uint64_t* result = ms_malloc(count, uint64_t);
-    memcpy(result, data, len);
-    return result;
-}
-
-/** 
- * Allocate and copy an array of uint32 assuming ntp32 encoding.
- * Implementation wise this is identical to copying uint32's.
- */
-uint32_t* ms_copy_ntp32(uint32_t count, const uint32_t* data) {
-    size_t len = count * sizeof(uint32_t);
-    uint32_t* result = ms_malloc(count, uint32_t);
-    memcpy(result, data, len);
-    return result;
-}
-
-/** 
- * Allocate and copy an array of uint64 assuming ntp64 encoding.
- * Implementation wise this is identical to copying uint32's.
- */
-uint64_t* ms_copy_ntp64(uint32_t count, const uint64_t* data) {
     size_t len = count * sizeof(uint64_t);
     uint64_t* result = ms_malloc(count, uint64_t);
     memcpy(result, data, len);

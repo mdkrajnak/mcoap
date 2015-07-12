@@ -16,6 +16,8 @@ typedef SOCKET mn_socket_t;
 
 #define MN_SOCKET_INVALID (INVALID_SOCKET)
 
+int inet_aton(const char *cp, inetaddr_t *inp);
+
 /** @} */
 
 #endif 

@@ -18,6 +18,9 @@ configuration("Release")
 configuration("vs*")
     buildoptions({ "/wd4127", "/wd4206", "/wd4996" })
     defines({ "WIN32", "_CRT_SECURE_NO_WARNINGS" })
+
+configuration("gmake")
+    defines({ "_POSIX_C_SOURCE=200112L", "__USE_MISC" })
    
 -- Library project files
 

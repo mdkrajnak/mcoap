@@ -12,6 +12,39 @@
 
 #include "mnet/mn_socket.h"
 
+
+/**
+ * This is a minimal implementation of inet_aton since its not available on windows.
+ * Convert IPv4 decimal dotted IP address into an IP number.
+ * @return 0 on failure, not 0 on success.
+ */
+int inet_aton(const char *cp, inetaddr_t *inp) {
+    unsigned int a = 0, b = 0, c = 0, d = 0;
+    int n = 0, r;
+    unsigned long int addr = 0;
+
+    /* Restrict the width to prevent format string attacks but leave it a */
+    /* little longer then we need to detect large numbers and allow */
+    /* preceeding 0's. */
+    r = sscanf(cp, "%5u.%5u.%5u.%5u%n", &a, &b, &c, &d, &n);
+    if (r == 0 || n == 0) return 0;
+    cp += n;
+
+    /* If the next character is not a null terminator, or */
+    /* Any value read is greater then 255, return 0 (error) */
+
+    if (*cp) return 0;
+    if (a > 255 || b > 255 || c > 255 || d > 255) return 0;
+    if (inp) {
+        addr += a; addr <<= 8;
+        addr += b; addr <<= 8;
+        addr += c; addr <<= 8;
+        addr += d;
+        inp->s_addr = htonl(addr);
+    }
+    return 1;
+}
+
 /**
  * strerror implemention for winsock.
  */
@@ -148,6 +181,56 @@ int mn_socket_create(mn_socket_t* sock, int domain, int type, int protocol) {
     *sock = socket(domain, type, protocol);
     if (*sock != UN_SOCKET_INVALID) return UN_DONE;
     else return WSAGetLastError();
+}
+
+/**
+ * Convert a host name to an in_addr structure.
+ * First assume its an IPv4 decimal dotted address, if not
+ * try looking it up by name.
+ * @return MN_DONE on success.
+ */
+static int host2addr(in_addr_t* addr, const char* hostname) {
+	int err;
+	int success;
+
+	/* Try to convert from decimal dotted form to address. */
+	success = inet_aton(hostname, addr);
+
+	/* If conversion failed assume it is a hostname and look it up. */
+	if (!success) {
+		hostent_t* hostent = NULL;
+		in_addr_t** inaddr;
+
+		err = mn_gethostbyname(hostname, &hostent);
+		if (err != MN_DONE) return err;
+
+		inaddr = (in_addr_t**)hostent->h_addr_list;
+		memcpy(addr, *inaddr, sizeof(in_addr_t));
+	}
+	return MN_DONE;
+}
+
+/**
+ * Initialize an internet address structure.
+ * If the hostname is the * wildcard we use INADDR_ANY for the address.
+ * @return pointer to the initialized address or 0.
+ */
+inetaddr_t* mn_inetaddr_init(inetaddr_t* addr, const char *hostname, unsigned short port) {
+    int err;
+
+    if (!addr) return 0;
+
+    addr->sin_port = htons(port);
+
+    if (strcmp(hostname, "*")) {
+    	addr->sin_family = AF_INET;
+    	err = host2addr(&addr->sin_addr, hostname);
+        if (err != MN_DONE) return 0;
+    }
+    else {
+    	addr->sin_addr.s_addr = htonl(INADDR_ANY);
+    }
+    return addr;
 }
 
 /**

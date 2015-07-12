@@ -126,7 +126,13 @@ uint32_t mc_message_buffer_size(mc_message_t* message) {
 	size = sizeof(message->header);
 	size += message->token.nbytes;
 	size += mc_options_list_buffer_size(&message->options);
-	size += message->payload.nbytes;
+
+	// If there are payload bytes and 1 for the payload 0xff flag
+	// in addition to the payload bytes.
+	if (message->payload.nbytes > 0) {
+		size++;
+		size += message->payload.nbytes;
+	}
 
     return size;
 }
