@@ -145,20 +145,22 @@ static int host2addr(struct in_addr* addr, const char* hostname) {
  * If the hostname is the * wildcard we use INADDR_ANY for the address.
  * @return pointer to the initialized address or 0.
  */
-inet4addr_t* mn_inetaddr_init(sockaddr_t* addr, const char *hostname, unsigned short port) {
+sockaddr_t* mn_inetaddr_init(sockaddr_t* addr, const char *hostname, unsigned short port) {
     int err;
+    struct sockaddr_in* inaddr;
 
     if (!addr) return 0;
+    inaddr = (struct sockaddr_in*)addr;
 
-    addr->sin_port = htons(port);
+    inaddr->sin_port = htons(port);
 
     if (strcmp(hostname, "*")) {
-    	addr->sin_family = AF_INET;
-    	err = host2addr(&addr->sin_addr, hostname);
+    	inaddr->sin_family = AF_INET;
+    	err = host2addr(&inaddr->sin_addr, hostname);
         if (err != MN_DONE) return 0;
     }
     else {
-    	addr->sin_addr.s_addr = htonl(INADDR_ANY);
+    	inaddr->sin_addr.s_addr = htonl(INADDR_ANY);
     }
     return addr;
 }

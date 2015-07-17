@@ -11,6 +11,8 @@
  * Socket module for Unix
  */
 
+/* Required for inet_aton on some systems. */
+
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>

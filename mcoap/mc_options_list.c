@@ -369,4 +369,22 @@ mc_options_list_t* mc_options_list_from_buffer(mc_options_list_t* list, mc_buffe
 	return mc_options_list_init(list, noptions, options);
 }
 
+int mc_options_list_get_index(mc_options_list_t* list, uint32_t start, uint16_t optnum) {
+	int iopt;
+
+	for (iopt = start; iopt < list->noptions; iopt++) {
+		if (list->options[iopt].option_num == optnum) {
+			return iopt;
+		}
+	}
+	return -1;
+}
+
+mc_option_t* mc_options_list_get(mc_options_list_t* list, int index) {
+	if (index < 0) return 0;
+	if (index > list->noptions) return 0;
+
+	return (list->options) + index;
+}
+
 /** @} */

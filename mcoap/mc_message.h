@@ -70,7 +70,7 @@ uint8_t mc_message_get_code(mc_message_t* message);
 uint16_t mc_message_get_message_id(mc_message_t* message);
 
 uint32_t mc_message_buffer_size(mc_message_t* message);
-mc_buffer_t* mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer);
+uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer);
 mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer, uint32_t* bpos);
 
 

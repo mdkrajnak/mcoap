@@ -28,7 +28,7 @@
  * Set block < 0 and total < 0 for an unlimited timeout.
  * Set block > 0 and total < 0 for for a fixed absolute timeout time.
  * Set block < 0 and total > 0 for a timeout relative to start, call timeout_markstart() to reset.
- * If both are > 0, it returns the shortest of either the “block” value or the computed remaining time.
+ * If both are > 0, it returns the shortest of either the block value or the computed remaining time.
  */
 void mn_timeout_init(mn_timeout_t* tout, double block, double total) {
     tout->block = block;

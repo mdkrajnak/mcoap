@@ -137,7 +137,7 @@ uint32_t mc_message_buffer_size(mc_message_t* message) {
     return size;
 }
 
-mc_buffer_t* mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
+uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	uint32_t bpos = 0;
 	uint32_t src_pos = 0;
 	uint32_t tmp = ms_swap_u32(message->header);
@@ -163,7 +163,7 @@ mc_buffer_t* mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	}
 
 
-    return buffer;
+    return bpos;
 }
 
 mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer, uint32_t* bpos) {
