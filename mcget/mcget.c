@@ -1,11 +1,6 @@
-/*
- ============================================================================
- Name        : mcget.c
- Author      : Krajnak
- Version     :
- Copyright   : 
- Description : Hello World in C, Ansi-style
- ============================================================================
+/**
+ * A command line application which takes a list of coap urls and issues a GET
+ * request for each resource.
  */
 
 #include <stdio.h>
@@ -13,17 +8,21 @@
 #include <string.h>
 
 #include "mcoap/mc_uri.h"
+#include "mcoap/mc_message.h"
 #include "mcoap/mc_endpt_udp.h"
 
-static void get_uri(unsigned short port, char const * const uri) {
+static void get_uri(unsigned short port, char* const uri) {
+	sockaddr_t addr;
 	mc_endpt_udp_t endpt;
+	uint16_t msgid;
 
-	// mc_endpt_udp_init(&endpt, 512, 512, "0.0.0.0", port);
-	printf("port %d, uri %s\n", port, uri);
+	mc_uri_to_address(&addr, uri);
+	mc_endpt_udp_init(&endpt, 512, 512, "0.0.0.0", port);
+	msgid = mc_endpt_udp_get(&endpt, 0, &addr, uri);
+
+	printf("msgid: %d, uri %s\n", msgid, uri);
 
 	// TODO IMPLEMENT
-	// Parse address from uri.
-	// Send request.
 	// Read response and print payload if printable
 	// Teardown endpoint
 }

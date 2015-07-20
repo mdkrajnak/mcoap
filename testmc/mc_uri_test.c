@@ -13,7 +13,7 @@
  */
 static void test_address_with_only_host(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "coap://127.0.0.1");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "coap://127.0.0.1");
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
@@ -37,7 +37,7 @@ static void test_address_with_only_host(CuTest* tc) {
  */
 static void test_address_with_host_and_port(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "coap://localhost:1000");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "coap://localhost:1000");
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
@@ -61,7 +61,7 @@ static void test_address_with_host_and_port(CuTest* tc) {
  */
 static void test_address_ipv6(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "coap://[fe80::225:11ff:fe3e:6904]:2000");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "coap://[fe80::225:11ff:fe3e:6904]:2000");
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
@@ -85,7 +85,7 @@ static void test_address_ipv6(CuTest* tc) {
  */
 static void test_address_invalid_ipv6(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "coap://[fe80:2000");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "coap://[fe80:2000");
 
 	CuAssert(tc, "is not parsable", options == 0);
 }
@@ -97,7 +97,7 @@ static void test_address_invalid_ipv6(CuTest* tc) {
  */
 static void test_address_with_missing_host(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "coap://:1000");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "coap://:1000");
 
 	CuAssert(tc, "is not parsable", options == 0);
 }
@@ -109,7 +109,7 @@ static void test_address_with_missing_host(CuTest* tc) {
  */
 static void test_address_with_invalid_scheme(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "cop://localhost:1000");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "cop://localhost:1000");
 
 	CuAssert(tc, "is not parsable", options == 0);
 }
@@ -121,7 +121,7 @@ static void test_address_with_invalid_scheme(CuTest* tc) {
  */
 static void test_address_with_path(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "coap://127.0.0.1:1000/path/to/resource");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "coap://127.0.0.1:1000/path/to/resource");
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
@@ -155,7 +155,7 @@ static void test_address_with_path(CuTest* tc) {
  */
 static void test_address_with_path_and_query(CuTest* tc) {
 
-	mc_options_list_t* options = mc_uri_parse(mc_options_list_alloc(), 0, 0, "coap://127.0.0.1:1000/path/to/resource?q1&q2");
+	mc_options_list_t* options = mc_uri_to_options(mc_options_list_alloc(), 0, "coap://127.0.0.1:1000/path/to/resource?q1&q2");
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);

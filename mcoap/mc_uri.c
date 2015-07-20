@@ -5,6 +5,7 @@
  */
 #include "msys/ms_memory.h"
 #include "msys/ms_copy.h"
+#include "mnet/mn_socket.h"
 #include "mcoap/mc_uri.h"
 #include <string.h>
 
@@ -97,7 +98,7 @@ static char* getaddress(char* const uri) {
 /**
  * Get port from URI.
  * Note: If port is invalid with respect to atoi conversions this
- * function still returns 0.
+ * function still returns the default port.
  * @return port or 0 if none.
  */
 static uint32_t getport(char* const uri) {
@@ -180,6 +181,28 @@ static char* getquery(char* const uri) {
 	return ms_copy_cstr(nchar, current);
 }
 
+
+
+static int equaladdr(sockaddr_t* const left, sockaddr_t* const right) {
+	int result;
+
+	/* If one address is null and the other is not return false. */
+	if (left && !right) return 0;
+	if (!left && right) return 0;
+
+	/* if both are null return true. */
+	if (!left && !right) return 1;
+	if (left->sa_family != right->sa_family) return 0;
+	if (left->sa_family == AF_INET) {
+		result = (0 == memcmp(left, right, sizeof(struct sockaddr_in)));
+	}
+	else {
+		result = (0 == memcmp(left, right, sizeof(struct sockaddr_in6)));
+	}
+
+	return result;
+}
+
 /**
  * Parse host, port, path, and query components from uri.
  * If destination host and/or port are in the URI they are elided
@@ -194,8 +217,9 @@ static char* getquery(char* const uri) {
  *
  * @return the corresponding options list or 0 on error.
  */
-mc_options_list_t* mc_uri_parse(mc_options_list_t* list, char* const desthost, uint16_t destport, char* const uri) {
+mc_options_list_t* mc_uri_to_options(mc_options_list_t* const list, sockaddr_t* const dest, char* const uri) {
 	mc_option_t* options;
+	sockaddr_t uriaddr;
 	char* host;
 	char* path;
 	char* query;
@@ -222,7 +246,6 @@ mc_options_list_t* mc_uri_parse(mc_options_list_t* list, char* const desthost, u
 		return 0;
 	}
 
-	/* Check for ip v6. */
 	if (strlen(host) == 0) {
 		ms_free(host);
 		return 0;
@@ -235,18 +258,22 @@ mc_options_list_t* mc_uri_parse(mc_options_list_t* list, char* const desthost, u
 	port = getport(current);
 	current = advanceto(current, "/?");
 
+	/* Estimate the number of options needed based on remaining path, */
+	/* and if the destination matches the URI, then allocate the option array. */
+	/* Note the RFC only omits the host if it is an IP literal. */
 	nopts = estimatenopts(current);
-	if ((desthost == 0) || strcmp(host, desthost)) nopts++;
-	if (port != destport) nopts++;
+	mn_inetaddr_init(&uriaddr, host, port);
+	if (!equaladdr(&uriaddr, dest)) {
+		nopts += 2;
+	}
 	options = ms_calloc(nopts, mc_option_t);
 
+	/* Note does not properly account for IP literal requirement in section 6.4 step 5. */
 	iopt = 0;
-	if ((desthost == 0) || strcmp(host, desthost)) {
+	if (!equaladdr(&uriaddr, dest)) {
 		mc_option_init_str(&options[iopt], OPTION_URI_HOST, host);
 		iopt++;
-	}
 
-	if (port != destport) {
 		mc_option_init_uint32(&options[iopt], OPTION_URI_PORT, port);
 		iopt++;
 	}
@@ -270,6 +297,48 @@ mc_options_list_t* mc_uri_parse(mc_options_list_t* list, char* const desthost, u
 	}
 
 	return mc_options_list_init(mc_options_list_alloc(), iopt, options);
+}
+
+/**
+ * Initialize a socket address from a coap URI.
+ * @return a pointer to the address or 0 on failure.
+ */
+sockaddr_t* mc_uri_to_address(sockaddr_t* const addr, char* const uri) {
+	sockaddr_t* result;
+	char* host;
+	uint32_t port;
+
+	/* Skip the scheme. */
+	char* current = advanceto(uri, ":");
+	current = advanceby(current, "://");
+	if (!current) {
+		return 0;
+	}
+
+	host = getaddress(current);
+	if (!host) {
+		return 0;
+	}
+
+	if (strlen(host) == 0) {
+		ms_free(host);
+		return 0;
+	}
+
+	/* Check and compensate for IP v6 []'s if needed. */
+	if (current && (*current == '[')) current += 2;
+
+	current += strlen(host);
+	port = getport(current);
+	if (port == 0) {
+		ms_free(host);
+		return 0;
+	}
+
+	result = mn_inetaddr_init(addr, host, port);
+	ms_free(host);
+
+	return result;
 }
 
 

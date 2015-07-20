@@ -38,11 +38,11 @@ mc_message_t* mc_message_init(
     uint8_t message_type,
     uint8_t code,
     uint16_t message_id,
-    mc_buffer_t token,
-    mc_options_list_t options,
-    mc_buffer_t payload) {
+    mc_buffer_t* token,
+    mc_options_list_t* options,
+    mc_buffer_t* payload) {
 
-	message->header = mc_header_create(version, message_type, token.nbytes, code, message_id);
+	message->header = mc_header_create(version, message_type, token->nbytes, code, message_id);
 	message->token = token;
 	message->options = options;
 	message->payload = payload;
@@ -54,9 +54,9 @@ mc_message_t* mc_message_con_init(
     mc_message_t* message,
     uint8_t code,
     uint16_t message_id,
-    mc_buffer_t token,
-    mc_options_list_t options,
-    mc_buffer_t payload) {
+    mc_buffer_t* token,
+    mc_options_list_t* options,
+    mc_buffer_t* payload) {
     
     return mc_message_init(message, MESSAGE_VERSION, CONFIRMABLE, code, message_id, token, options, payload);
 }
@@ -65,9 +65,9 @@ mc_message_t* mc_message_non_init(
     mc_message_t* message,
     uint8_t code,
     uint16_t message_id,
-    mc_buffer_t token,
-    mc_options_list_t options,
-    mc_buffer_t payload) {
+    mc_buffer_t* token,
+    mc_options_list_t* options,
+    mc_buffer_t* payload) {
     
 	return mc_message_init(message, MESSAGE_VERSION, NONCONFIRMABLE, code, message_id, token, options, payload);
 }
@@ -76,9 +76,9 @@ mc_message_t* mc_message_ack_init(
     mc_message_t* message,
     uint8_t code,
     uint16_t message_id,
-    mc_buffer_t token,
-    mc_options_list_t options,
-    mc_buffer_t payload) {
+    mc_buffer_t* token,
+    mc_options_list_t* options,
+    mc_buffer_t* payload) {
     
 	return mc_message_init(message, MESSAGE_VERSION, ACKNOWLEDGEMENT, code, message_id, token, options, payload);
 }
@@ -87,14 +87,17 @@ mc_message_t* mc_message_rst_init(
     mc_message_t* message,
     uint8_t code,
     uint16_t message_id,
-    mc_buffer_t token,
-    mc_options_list_t options,
-    mc_buffer_t payload) {
+    mc_buffer_t* token,
+    mc_options_list_t* options,
+    mc_buffer_t* payload) {
     
 	return mc_message_init(message, MESSAGE_VERSION, RESET, code, message_id, token, options, payload);
 }
     
 mc_message_t* mc_message_deinit(mc_message_t* message) {
+	ms_free(mc_buffer_deinit(message->token));
+	ms_free(mc_options_list_deinit(message->options));
+	ms_free(mc_buffer_deinit(message->payload));
     return 0;
 }
 
@@ -124,14 +127,14 @@ uint32_t mc_message_buffer_size(mc_message_t* message) {
 	if (message == 0) return 0;
 
 	size = sizeof(message->header);
-	size += message->token.nbytes;
-	size += mc_options_list_buffer_size(&message->options);
+	size += message->token->nbytes;
+	size += mc_options_list_buffer_size(message->options);
 
 	// If there are payload bytes and 1 for the payload 0xff flag
 	// in addition to the payload bytes.
-	if (message->payload.nbytes > 0) {
+	if (message->payload->nbytes > 0) {
 		size++;
-		size += message->payload.nbytes;
+		size += message->payload->nbytes;
 	}
 
     return size;
@@ -150,16 +153,16 @@ uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	memcpy(buffer->bytes, &tmp, sizeof(uint32_t));
 	bpos += sizeof(message->header);
 
-	if (mc_buffer_copy_to(buffer, message->token.nbytes, &bpos, &message->token, &src_pos) == 0) return 0;
+	if (mc_buffer_copy_to(buffer, message->token->nbytes, &bpos, message->token, &src_pos) == 0) return 0;
 
-	if (mc_options_list_to_buffer(&message->options, buffer, &bpos) == 0) return 0;
+	if (mc_options_list_to_buffer(message->options, buffer, &bpos) == 0) return 0;
 
 	/* If there is a payload, append the start of payload marker and the payload. */
-	if (message->payload.nbytes > 0) {
+	if (message->payload->nbytes > 0) {
 		buffer->bytes[bpos] = 0xff;
 		bpos++;
 
-		if (mc_buffer_copy_to(buffer, message->payload.nbytes, &bpos, &message->payload, 0) == 0) return 0;
+		if (mc_buffer_copy_to(buffer, message->payload->nbytes, &bpos, message->payload, 0) == 0) return 0;
 	}
 
 
@@ -191,9 +194,9 @@ mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer,
 	header = ms_swap_u32(mc_buffer_next_uint32(buffer, bpos));
 	tklen = mc_header_get_token_length(header);
 	tkdata = mc_buffer_next_ptr(buffer, tklen, bpos);
-	mc_buffer_init(&message->token, tklen, ms_copy_uint8(tklen, tkdata));
+	mc_buffer_init(message->token, tklen, ms_copy_uint8(tklen, tkdata));
 
-	mc_options_list_from_buffer(&message->options, buffer, bpos);
+	mc_options_list_from_buffer(message->options, buffer, bpos);
 
 	remaining = buffer->nbytes - *bpos;
 
@@ -207,9 +210,9 @@ mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer,
 		bpos++;
 
 		pllen = remaining - 1;
-		mc_buffer_init(&message->payload, pllen, ms_calloc(pllen, uint8_t));
+		mc_buffer_init(message->payload, pllen, ms_calloc(pllen, uint8_t));
 
-		if (mc_buffer_copy_to(&message->payload, pllen, 0, buffer, bpos) == 0) return 0;
+		if (mc_buffer_copy_to(message->payload, pllen, 0, buffer, bpos) == 0) return 0;
 	}
 
 	/* Todo, should we check the header version? */

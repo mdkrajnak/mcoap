@@ -28,15 +28,15 @@ static FILE* write_bytes(FILE* out, const char* prefix, uint32_t count, uint8_t*
  *  Then we get the expected bytes.
  */
 static void test_empty_message_to_buffer(CuTest* tc) {
-    mc_buffer_t token;
-    mc_options_list_t options;
-    mc_buffer_t payload;
+    mc_buffer_t* token;
+    mc_options_list_t* options;
+    mc_buffer_t* payload;
     uint8_t code = 0;
     uint16_t message_id = 0;
 
-    mc_buffer_init(&token, 0, 0);
-    mc_options_list_init(&options, 0, 0);
-    mc_buffer_init(&payload, 0, 0);
+    token = mc_buffer_init(mc_buffer_alloc(), 0, 0);
+    options = mc_options_list_init(mc_options_list_alloc(), 0, 0);
+    payload = mc_buffer_init(mc_buffer_alloc(), 0, 0);
 
     mc_message_t* message = mc_message_con_init(
         mc_message_alloc(),
@@ -66,17 +66,17 @@ static void test_empty_message_to_buffer(CuTest* tc) {
  *  Then we get the expected bytes.
  */
 static void test_message_to_buffer(CuTest* tc) {
-    mc_buffer_t token;
-    mc_options_list_t options;
-    mc_buffer_t payload;
+    mc_buffer_t* token;
+    mc_options_list_t* options;
+    mc_buffer_t* payload;
     uint8_t code = 1;
     uint16_t message_id = 2;
     uint8_t tk_value = 3;
     uint8_t pl_value = 10;
 
-    mc_buffer_init(&token, 1, ms_copy_uint8(1, &tk_value));
-    mc_options_list_vinit(&options, 1, mc_option_init_str(mc_option_alloc(), 4, "a"));
-    mc_buffer_init(&payload, 1, ms_copy_uint8(1, &pl_value));
+    token = mc_buffer_init(mc_buffer_alloc(), 1, ms_copy_uint8(1, &tk_value));
+    options = mc_options_list_vinit(mc_options_list_alloc(), 1, mc_option_init_str(mc_option_alloc(), 4, ms_copy_str("a")));
+    payload = mc_buffer_init(mc_buffer_alloc(), 1, ms_copy_uint8(1, &pl_value));
 
     mc_message_t* message = mc_message_con_init(
         mc_message_alloc(),
@@ -104,8 +104,7 @@ static void test_message_to_buffer(CuTest* tc) {
     CuAssert(tc, "byte[7] is 0xff", buffer->bytes[7] == (uint8_t)0xff); // Payload flag
     CuAssert(tc, "byte[8] is 0x0a", buffer->bytes[8] == (uint8_t)0x0a); // Payload
 
-    free(mc_buffer_deinit(buffer));
-    free(mc_message_deinit(message));
+    ms_free(mc_message_deinit(message));
 }
 
 /**
@@ -114,17 +113,17 @@ static void test_message_to_buffer(CuTest* tc) {
  *  Then we get two identical messages.
  */
 static void test_message_roundtrip(CuTest* tc) {
-    mc_buffer_t token;
-    mc_options_list_t options;
-    mc_buffer_t payload;
+    mc_buffer_t* token;
+    mc_options_list_t* options;
+    mc_buffer_t* payload;
     uint8_t code = 1;
     uint16_t message_id = 2;
     uint8_t tk_value = 3;
     uint8_t pl_value = 10;
 
-    mc_buffer_init(&token, 1, ms_copy_uint8(1, &tk_value));
-    mc_options_list_vinit(&options, 1, mc_option_init_str(mc_option_alloc(), 4, "a"));
-    mc_buffer_init(&payload, 1, ms_copy_uint8(1, &pl_value));
+    token = mc_buffer_init(mc_buffer_alloc(), 1, ms_copy_uint8(1, &tk_value));
+    options = mc_options_list_vinit(mc_options_list_alloc(), 1, mc_option_init_str(mc_option_alloc(), 4, ms_copy_str("a")));
+    payload = mc_buffer_init(mc_buffer_alloc(), 1, ms_copy_uint8(1, &pl_value));
 
     mc_message_t* message = mc_message_con_init(
         mc_message_alloc(),
@@ -151,8 +150,7 @@ static void test_message_roundtrip(CuTest* tc) {
     CuAssert(tc, "byte[7] is 0xff", buffer->bytes[7] == (uint8_t)0xff);
     CuAssert(tc, "byte[8] is 0x0a", buffer->bytes[8] == (uint8_t)0x0a);
 
-    free(mc_buffer_deinit(buffer));
-    free(mc_message_deinit(message));
+    ms_free(mc_message_deinit(message));
 }
 
 /* Run all of the tests in this test suite. */

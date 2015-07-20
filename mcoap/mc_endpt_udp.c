@@ -9,12 +9,24 @@
 #include "msys/ms_log.h"
 #include "mnet/mn_timeout.h"
 #include "mcoap/mc_endpt_udp.h"
+#include "mcoap/mc_code.h"
 #include "mcoap/mc_message.h"
+#include "mcoap/mc_token.h"
+#include "mcoap/mc_uri.h"
+
+#include <stdlib.h>
 
 #define DEFAULT_ENDPT_TIMEOUT 0.2
 
 mc_endpt_udp_t* mc_endpt_udp_alloc() {
 	return ms_calloc(1, mc_endpt_udp_t);
+}
+
+/**
+ * RFC7252 4.4 recommends choosing a random initial value.
+ */
+static uint16_t random_id() {
+	return rand();
 }
 
 mc_endpt_udp_t* mc_endpt_udp_init(mc_endpt_udp_t* const endpt, uint32_t rdsize, uint32_t wrsize, const char* hostname, unsigned short port) {
@@ -23,6 +35,7 @@ mc_endpt_udp_t* mc_endpt_udp_init(mc_endpt_udp_t* const endpt, uint32_t rdsize, 
 	endpt->readfn = 0;
 	endpt->thread = 0;
 	endpt->running = 0;
+	endpt->nextid = random_id();
 
 	/* @todo consider restricting the maxmimum buffer sizes (e.g. less then 64k). */
 	mc_buffer_init(&endpt->rdbuffer, rdsize, ms_calloc(rdsize, uint8_t));
@@ -92,6 +105,13 @@ static void endpt_udp_reader(void* data) {
 	}
 }
 
+uint16_t mc_endpt_udp_nextid(mc_endpt_udp_t* endpt) {
+	uint16_t result = endpt->nextid;
+	endpt->nextid++;
+
+	return result;
+}
+
 mc_endpt_udp_t* mc_endpt_udp_start(mc_endpt_udp_t* const endpt, mc_endpt_read_fn_t readfn) {
 	endpt->running = 1;
 	endpt->readfn = readfn;
@@ -133,6 +153,23 @@ int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_messag
 	bufsize = mc_message_to_buffer(msg, &endpt->wrbuffer);
 	err = mn_socket_sendto(&endpt->sock, (const char*)endpt->wrbuffer.bytes, bufsize, &sent, toaddr, (socklen_t)sizeof(struct sockaddr_in), &endpt->tmout);
 	return err;
+}
+
+uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, int confirm, sockaddr_t* const addr, char* const uri) {
+	mc_message_t msg;
+	mc_options_list_t* list;
+	uint16_t msgid;
+	mc_buffer_t* token;
+
+	list = mc_uri_to_options(mc_options_list_alloc(), addr, uri);
+	msgid = mc_endpt_udp_nextid(endpt);
+	token = mc_token_create2(msgid);
+
+	mc_message_non_init(&msg, MC_GET, msgid, token, list, 0);
+	mc_endpt_udp_send(endpt, addr, &msg);
+
+	mc_message_deinit(&msg);
+	return msgid;
 }
 
 /** @} */

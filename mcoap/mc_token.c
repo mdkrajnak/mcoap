@@ -10,6 +10,11 @@
 #include "msys/ms_memory.h"
 #include "mcoap/mc_token.h"
 
+/**
+ * Create a token with caller specified 1 byte prefix and 4 byte
+ * random suffix. The caller prefix can be an incrementing number
+ * that helps minimize the chance of collisions.
+ */
 mc_buffer_t* mc_token_create1(uint8_t prefix) {
 	uint8_t* buffer = ms_calloc(5, uint8_t);
 
@@ -24,6 +29,11 @@ mc_buffer_t* mc_token_create1(uint8_t prefix) {
 	return mc_buffer_init(mc_buffer_alloc(), 5, buffer);
 }
 
+/**
+ * Create a token with caller specified 2 byte prefix and 4 byte
+ * random suffix. The caller prefix can be an incrementing number
+ * that helps minimize the chance of collisions.
+ */
 mc_buffer_t* mc_token_create2(uint16_t prefix) {
 	uint8_t* buffer = ms_malloc(6, uint8_t);
 
@@ -38,6 +48,11 @@ mc_buffer_t* mc_token_create2(uint16_t prefix) {
 	return mc_buffer_init(mc_buffer_alloc(), 6, buffer);
 }
 
+/**
+ * Create a token with caller specified 4 byte prefix and 4 byte
+ * random suffix. The caller prefix can be an incrementing number
+ * that helps minimize the chance of collisions.
+ */
 mc_buffer_t* mc_token_create4(uint32_t prefix) {
 	uint8_t* buffer = ms_malloc(8, uint8_t);
 

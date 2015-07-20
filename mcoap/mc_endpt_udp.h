@@ -24,6 +24,7 @@ struct mc_endpt_udp {
 	mc_buffer_t rdbuffer;
 	mc_buffer_t wrbuffer;
 	int running;
+	uint16_t nextid;
 };
 
 mc_endpt_udp_t* mc_endpt_udp_alloc();
@@ -34,6 +35,7 @@ mc_endpt_udp_t* mc_endpt_udp_start(mc_endpt_udp_t* const endpt, mc_endpt_read_fn
 mc_endpt_udp_t* mc_endpt_udp_stop(mc_endpt_udp_t* const endpt);
 mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt);
 int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg);
+uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, int confirm, sockaddr_t* const addr, char* const uri);
 
 /** @} */
 
