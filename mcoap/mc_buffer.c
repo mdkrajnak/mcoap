@@ -57,7 +57,7 @@ uint16_t mc_buffer_next_uint16(const mc_buffer_t* buffer, uint32_t* bpos) {
 uint32_t mc_buffer_next_uint32(const mc_buffer_t* buffer, uint32_t* bpos) {
 	uint32_t result;
 
-	memcpy(&(buffer->bytes[*bpos]), &result, 4);
+	memcpy(&result, &(buffer->bytes[*bpos]), 4);
 	(*bpos) += 4;
 
 	return result;

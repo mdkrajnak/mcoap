@@ -6,7 +6,7 @@
  * @{
  * Error strings
  */
-const char *mn_strerror(int err) {
+const char *mn_error(int err) {
     switch (err) {
         case MN_CLOSED: return "closed";
         case MN_DONE: return "done";

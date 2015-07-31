@@ -17,7 +17,7 @@ enum {
     MN_UNKNOWN = -3
 };
 
-const char *mn_strerror(int err);
+const char *mn_error(int err);
 
 /** @} */
 

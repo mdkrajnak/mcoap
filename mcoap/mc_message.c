@@ -95,9 +95,19 @@ mc_message_t* mc_message_rst_init(
 }
     
 mc_message_t* mc_message_deinit(mc_message_t* message) {
-	ms_free(mc_buffer_deinit(message->token));
-	ms_free(mc_options_list_deinit(message->options));
-	ms_free(mc_buffer_deinit(message->payload));
+	if (message->token) {
+		ms_free(mc_buffer_deinit(message->token));
+		message->token = 0;
+	}
+	if (message->options) {
+		ms_free(mc_options_list_deinit(message->options));
+		message->options = 0;
+	}
+	if (message->payload) {
+		ms_free(mc_buffer_deinit(message->payload));
+		message->payload = 0;
+	}
+
     return 0;
 }
 
@@ -132,7 +142,7 @@ uint32_t mc_message_buffer_size(mc_message_t* message) {
 
 	// If there are payload bytes and 1 for the payload 0xff flag
 	// in addition to the payload bytes.
-	if (message->payload->nbytes > 0) {
+	if (message->payload && message->payload->nbytes > 0) {
 		size++;
 		size += message->payload->nbytes;
 	}
@@ -158,7 +168,7 @@ uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	if (mc_options_list_to_buffer(message->options, buffer, &bpos) == 0) return 0;
 
 	/* If there is a payload, append the start of payload marker and the payload. */
-	if (message->payload->nbytes > 0) {
+	if (message->payload && message->payload->nbytes > 0) {
 		buffer->bytes[bpos] = 0xff;
 		bpos++;
 
@@ -170,7 +180,6 @@ uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 }
 
 mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer, uint32_t* bpos) {
-	uint32_t header;
 	uint32_t remaining;
 	uint32_t marker;
 	uint32_t pllen;
@@ -191,12 +200,13 @@ mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer,
 	if (bpos == 0) bpos = &apos;
 
 	/* Read message components. */
-	header = ms_swap_u32(mc_buffer_next_uint32(buffer, bpos));
-	tklen = mc_header_get_token_length(header);
+	message->header = ms_swap_u32(mc_buffer_next_uint32(buffer, bpos));
+	tklen = mc_header_get_token_length(message->header);
 	tkdata = mc_buffer_next_ptr(buffer, tklen, bpos);
-	mc_buffer_init(message->token, tklen, ms_copy_uint8(tklen, tkdata));
 
-	mc_options_list_from_buffer(message->options, buffer, bpos);
+	/* N.B. Assumes token and options are null. */
+	message->token = mc_buffer_init(mc_buffer_alloc(), tklen, ms_copy_uint8(tklen, tkdata));
+	message->options = mc_options_list_from_buffer(mc_options_list_alloc(), buffer, bpos);
 
 	remaining = buffer->nbytes - *bpos;
 

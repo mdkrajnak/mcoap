@@ -60,6 +60,59 @@ static void test_empty_message_to_buffer(CuTest* tc) {
     CuAssert(tc, "byte[3] is 0", buffer->bytes[3] == 0);
 }
 
+
+/**
+ *  Given an message,
+ *  When we serialize it,
+ *  Then we get the expected bytes.
+ */
+static void test_empty_payload_to_roundtrip(CuTest* tc) {
+    mc_buffer_t* token;
+    mc_options_list_t* options;
+    uint8_t code = 1;
+    uint16_t message_id = 2;
+    uint8_t tk_value = 3;
+
+    token = mc_buffer_init(mc_buffer_alloc(), 1, ms_copy_uint8(1, &tk_value));
+    options = mc_options_list_vinit(mc_options_list_alloc(), 1, mc_option_init_str(mc_option_alloc(), 4, ms_copy_str("a")));
+
+
+    mc_message_t* message = mc_message_con_init(
+        mc_message_alloc(),
+        code,
+        message_id,
+        token,
+        options,
+        0);		/* payload. */
+
+    uint32_t nbytes = mc_message_buffer_size(message);
+    CuAssert(tc, "size is 7", nbytes == 7);
+
+    mc_buffer_t* buffer = mc_buffer_init(mc_buffer_alloc(), nbytes, ms_calloc(nbytes, uint8_t));
+
+    mc_message_to_buffer(message, buffer);
+    write_bytes(stdout, "nopayload", nbytes, buffer->bytes);
+
+    CuAssert(tc, "byte[0] is 0x41", buffer->bytes[0] == (uint8_t)0x41); // Version + TKL
+    CuAssert(tc, "byte[1] is 0x01", buffer->bytes[1] == (uint8_t)0x01); // Code
+    CuAssert(tc, "byte[2] is 0x00", buffer->bytes[2] == (uint8_t)0x00); // Msg ID byte 1
+    CuAssert(tc, "byte[3] is 0x02", buffer->bytes[3] == (uint8_t)0x02); // Msg ID byte 2
+    CuAssert(tc, "byte[4] is 0x03", buffer->bytes[4] == (uint8_t)0x03); // Token
+    CuAssert(tc, "byte[5] is 0x41", buffer->bytes[5] == (uint8_t)0x41); // Option header.
+    CuAssert(tc, "byte[6] is 0x61", buffer->bytes[6] == (uint8_t)0x61); // Option
+
+    uint32_t pos = 0;
+    mc_message_t* actual = mc_message_from_buffer(mc_message_alloc(), buffer, &pos);
+
+    CuAssert(tc, "Same header", actual->header == message->header);
+    CuAssert(tc, "Same noptions", actual->options->noptions == message->options->noptions);
+    CuAssert(tc, "Same token nbytes", actual->token->nbytes == message->token->nbytes);
+    CuAssert(tc, "Same payload (0)", (actual->payload == message->payload) && (actual->payload == 0));
+
+    ms_free(mc_message_deinit(actual));
+    ms_free(mc_message_deinit(message));
+}
+
 /**
  *  Given an message,
  *  When we serialize it,
@@ -158,6 +211,7 @@ CuSuite* mc_message_suite() {
     CuSuite* suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, test_empty_message_to_buffer);
+    SUITE_ADD_TEST(suite, test_empty_payload_to_roundtrip);
     SUITE_ADD_TEST(suite, test_message_to_buffer);
     SUITE_ADD_TEST(suite, test_message_roundtrip);
     

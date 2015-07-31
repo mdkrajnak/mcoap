@@ -41,8 +41,9 @@ int mn_socket_recvfrom(
     mn_socket_t* sock, char* data, size_t count, size_t* got, 
     sockaddr_t* addr, socklen_t* addr_len, mn_timeout_t* tout);
 
-void mn_socket_setnonblocking(mn_socket_t* sock);
-void mn_socket_setblocking(mn_socket_t* sock);
+/* @todo update win versions. */
+int mn_socket_setnonblocking(mn_socket_t* sock);
+int mn_socket_setblocking(mn_socket_t* sock);
 
 int mn_socket_waitfd(mn_socket_t* sock, int sw, mn_timeout_t* tout);
 

@@ -28,6 +28,7 @@ void ms_log_setlevel(ms_log_level_t level);
 ms_log_level_t ms_log_getlevel();
 
 void ms_log(ms_log_level_t level, const char* fname, unsigned int line, const char* message, ...);
+void ms_log_bytes(ms_log_level_t level, uint32_t count, uint8_t* bytes);
 
 /**
  * If DEBUG is set enable debug logging.

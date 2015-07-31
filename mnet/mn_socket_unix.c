@@ -109,8 +109,7 @@ int mn_socket_create(mn_socket_t* sock, int domain, int type, int protocol) {
     if (*sock == MN_SOCKET_INVALID) return errno;
     
     /* Set reuseaddr so we can restart the socket in case of a crash. */
-    setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
-    return MN_DONE; 
+    return setsockopt(*sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
 }
 
 /**
@@ -170,11 +169,11 @@ sockaddr_t* mn_inetaddr_init(sockaddr_t* addr, const char *hostname, unsigned sh
  * Binds or returns error message
  */
 int mn_socket_bind(mn_socket_t* sock, sockaddr_t* addr, socklen_t len) {
-    int err = MN_DONE;
-    mn_socket_setblocking(sock);
-    if (bind(*sock, addr, len) < 0) err = errno; 
-    mn_socket_setnonblocking(sock);
-    return err;
+    int err = mn_socket_setblocking(sock);
+    if (err != MN_DONE) return err;
+
+    if (bind(*sock, addr, len) < 0) return errno;
+    return mn_socket_setnonblocking(sock);
 }
 
 /**
@@ -338,7 +337,7 @@ int mn_socket_recvfrom(mn_socket_t* sock, char *data, size_t count, size_t *got,
     *got = 0;
     if (*sock == MN_SOCKET_INVALID) return MN_CLOSED;
     for ( ;; ) {
-        long taken = (long) recvfrom(*sock, data, count, 0, addr, len);
+        long taken = (long)recvfrom(*sock, data, count, 0, addr, len);
         if (taken > 0) {
             *got = taken;
             return MN_DONE;
@@ -355,19 +354,25 @@ int mn_socket_recvfrom(mn_socket_t* sock, char *data, size_t count, size_t *got,
 /**
  * Put socket into blocking mode
  */
-void mn_socket_setblocking(mn_socket_t* sock) {
+int mn_socket_setblocking(mn_socket_t* sock) {
+	int err;
     int flags = fcntl(*sock, F_GETFL, 0);
     flags &= (~(O_NONBLOCK));
-    fcntl(*sock, F_SETFL, flags);
+    err = fcntl(*sock, F_SETFL, flags);
+    if (err == -1) return errno;
+    return MN_DONE;
 }
 
 /**
  * Put socket into non-blocking mode
  */
-void mn_socket_setnonblocking(mn_socket_t* sock) {
+int mn_socket_setnonblocking(mn_socket_t* sock) {
+	int err;
     int flags = fcntl(*sock, F_GETFL, 0);
     flags |= O_NONBLOCK;
-    fcntl(*sock, F_SETFL, flags);
+    err = fcntl(*sock, F_SETFL, flags);
+    if (err == -1) return errno;
+    return MN_DONE;
 }
 
 /**
@@ -421,7 +426,6 @@ const char *mn_hoststrerror(int err) {
 }
 
 const char *mn_strerror(int err) {
-    if (err <= 0) return mn_strerror(err);
     switch (err) {
         case EADDRINUSE: return "address already in use";
         case EISCONN: return "already connected";
@@ -430,7 +434,7 @@ const char *mn_strerror(int err) {
         case ECONNABORTED: return "closed";
         case ECONNRESET: return "closed";
         case ETIMEDOUT: return "timeout";
-        default: return mn_strerror(errno);
+        default: return mn_error(err);
     }
 }
 

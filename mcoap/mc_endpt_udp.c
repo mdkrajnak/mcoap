@@ -15,6 +15,7 @@
 #include "mcoap/mc_uri.h"
 
 #include <stdlib.h>
+#include <math.h>
 
 #define DEFAULT_ENDPT_TIMEOUT 0.2
 
@@ -26,16 +27,21 @@ mc_endpt_udp_t* mc_endpt_udp_alloc() {
  * RFC7252 4.4 recommends choosing a random initial value.
  */
 static uint16_t random_id() {
+	unsigned int seed = (unsigned int)round(mn_gettime()*1000.0);
+	srand(seed);
 	return rand();
 }
 
 mc_endpt_udp_t* mc_endpt_udp_init(mc_endpt_udp_t* const endpt, uint32_t rdsize, uint32_t wrsize, const char* hostname, unsigned short port) {
 	sockaddr_t addr;
-
+	int err;
 	endpt->readfn = 0;
 	endpt->thread = 0;
 	endpt->running = 0;
 	endpt->nextid = random_id();
+	if (endpt->nextid == 0) {
+		endpt->nextid = 1;
+	}
 
 	/* @todo consider restricting the maxmimum buffer sizes (e.g. less then 64k). */
 	mc_buffer_init(&endpt->rdbuffer, rdsize, ms_calloc(rdsize, uint8_t));
@@ -52,8 +58,9 @@ mc_endpt_udp_t* mc_endpt_udp_init(mc_endpt_udp_t* const endpt, uint32_t rdsize, 
 		return 0;
 	}
 
-	if (mn_socket_create(&endpt->sock, AF_INET, SOCK_DGRAM, 0) != MN_DONE) {
-		ms_log_debug("Failed to create socket.");
+	err = mn_socket_create(&endpt->sock, AF_INET, SOCK_DGRAM, 0);
+	if ( err != MN_DONE) {
+		ms_log_debug("Failed to create socket, error: %d, %s.", err, mn_strerror(err));
 		return 0;
 	}
 
@@ -108,6 +115,9 @@ static void endpt_udp_reader(void* data) {
 uint16_t mc_endpt_udp_nextid(mc_endpt_udp_t* endpt) {
 	uint16_t result = endpt->nextid;
 	endpt->nextid++;
+	if (endpt->nextid == 0) {
+		endpt->nextid = 1;
+	}
 
 	return result;
 }
@@ -134,12 +144,24 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
 	uint32_t bpos;
 	uint32_t rdsize;
 	mc_message_t* msg;
+	int err;
 
 	rdsize = endpt->rdbuffer.nbytes;
-	mn_socket_recvfrom(&endpt->sock, (char*)endpt->rdbuffer.bytes, endpt->rdbuffer.nbytes, (size_t*)&endpt->rdbuffer.nbytes, &fromaddr, &addrlen, &endpt->tmout);
+	err = mn_socket_recvfrom(&endpt->sock, (char*)endpt->rdbuffer.bytes, endpt->rdbuffer.nbytes, (size_t*)&endpt->rdbuffer.nbytes, &fromaddr, &addrlen, &endpt->tmout);
 
-	bpos = 0;
-	msg = mc_message_from_buffer(mc_message_alloc(), &endpt->rdbuffer, &bpos);
+	if (err != MN_DONE) {
+		msg = 0;
+		ms_log_debug("Receive error: %d, %s", err, mn_strerror(err));
+	}
+	else {
+		bpos = 0;
+		ms_log_debug("Received response with %d bytes", endpt->rdbuffer.nbytes);
+		ms_log_bytes(ms_debug, endpt->rdbuffer.nbytes, endpt->rdbuffer.bytes);
+
+		msg = mc_message_from_buffer(mc_message_alloc(), &endpt->rdbuffer, &bpos);
+	}
+
+	/** Reset the read buffer size to it original value. */
 	endpt->rdbuffer.nbytes = rdsize;
 
 	return msg;
@@ -155,18 +177,24 @@ int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_messag
 	return err;
 }
 
-uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, int confirm, sockaddr_t* const addr, char* const uri) {
+/** Return 0 on error. */
+uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, int confirm, char* const uri) {
 	mc_message_t msg;
 	mc_options_list_t* list;
 	uint16_t msgid;
 	mc_buffer_t* token;
+	int err;
 
 	list = mc_uri_to_options(mc_options_list_alloc(), addr, uri);
 	msgid = mc_endpt_udp_nextid(endpt);
 	token = mc_token_create2(msgid);
 
 	mc_message_non_init(&msg, MC_GET, msgid, token, list, 0);
-	mc_endpt_udp_send(endpt, addr, &msg);
+	err = mc_endpt_udp_send(endpt, addr, &msg);
+	if (err != MN_DONE) {
+		ms_log_debug("Error sending message: %d, %s", err, mn_strerror(err));
+		msgid = 0;
+	}
 
 	mc_message_deinit(&msg);
 	return msgid;

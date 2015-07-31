@@ -7,24 +7,48 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "msys/ms_memory.h"
+#include "msys/ms_log.h"
 #include "mcoap/mc_uri.h"
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_endpt_udp.h"
+
+static void print_msg(mc_message_t* const msg) {
+	if (msg == 0) {
+		printf("no response received\n");
+	}
+	else {
+		printf("Received message with msgid %d.\n", mc_message_get_message_id(msg));
+
+		/** @todo check content type. */
+		printf("%.*s\n", msg->payload->nbytes, msg->payload->bytes);
+	}
+}
 
 static void get_uri(unsigned short port, char* const uri) {
 	sockaddr_t addr;
 	mc_endpt_udp_t endpt;
 	uint16_t msgid;
+	mc_message_t* msg;
+	int ntries;
 
 	mc_uri_to_address(&addr, uri);
 	mc_endpt_udp_init(&endpt, 512, 512, "0.0.0.0", port);
-	msgid = mc_endpt_udp_get(&endpt, 0, &addr, uri);
+	msgid = mc_endpt_udp_get(&endpt, &addr, 0, uri);
 
 	printf("msgid: %d, uri %s\n", msgid, uri);
 
-	// TODO IMPLEMENT
-	// Read response and print payload if printable
-	// Teardown endpoint
+	ntries = 0;
+	msg = 0;
+	while ((msg == 0) && (ntries < 3)) {
+		msg = mc_endpt_udp_recv(&endpt);
+		ntries++;
+	}
+
+	print_msg(msg);
+
+	if (msg) ms_free(mc_message_deinit(msg));
+	mc_endpt_udp_deinit(&endpt);
 }
 
 static void get_uris(unsigned short port, int nuri, char** uris) {
@@ -102,6 +126,8 @@ int main(int argc, char** argv) {
 	int err = getport(argc, argv, &port);
 	argc = packargs(argc, argv);
 
+	ms_log_setfile(stdout);
+	ms_log_setlevel(ms_debug);
 	if (err || (argc < 1)) usage();
 	else get_uris(port, argc, argv);
 

@@ -10,6 +10,7 @@
 #include "testmc/mc_options_list_test.h"
 #include "testmc/mc_message_test.h"
 #include "testmc/mc_uri_test.h"
+#include "testmc/mc_endpt_udp_test.h"
 
 #if defined(WIN32) && defined(_DEBUG)
 void dumpMemLeaks() {
@@ -45,6 +46,7 @@ void run_all_tests() {
     add_tmp_suite(suite, mc_options_list_suite());
     add_tmp_suite(suite, mc_message_suite());
     add_tmp_suite(suite, mc_uri_suite());
+    add_tmp_suite(suite, mc_endpt_udp_suite());
 
     CuSuiteRun(suite);
     

@@ -224,6 +224,9 @@ mc_buffer_t* mc_options_list_to_buffer(const mc_options_list_t* list, mc_buffer_
 	uint32_t prev_option_num = 0;
 	uint32_t apos = 0;
 
+	/* If no list return. */
+	if (!list) return buffer;
+
 	/* If not caller specified, use position 0. */
 	if (bpos == 0) bpos = &apos;
 

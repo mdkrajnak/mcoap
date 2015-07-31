@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 #include "msys/ms_log.h"
 
@@ -113,7 +114,7 @@ void ms_log(ms_log_level_t level, const char* fname, unsigned int line, const ch
     char datebuf[16];
     va_list args;
 
-    if (!logfile) return;
+    /* if (!logfile) return; */
     if (level < loglevel) return;
 
     seconds = time(0);
@@ -126,6 +127,28 @@ void ms_log(ms_log_level_t level, const char* fname, unsigned int line, const ch
 
     fprintf(logfile, "\n");
     fflush(logfile);
+}
+
+void ms_log_bytes(ms_log_level_t level, uint32_t count, uint8_t* bytes) {
+    uint32_t ibyte;
+    char achar;
+
+    /* if (!logfile) return; */
+    if (level < loglevel) return;
+
+    for(ibyte = 0; ibyte < count; ibyte++) {
+        fprintf(logfile, "0x%02x ", bytes[ibyte]);
+    }
+    fprintf(logfile, "\n");
+
+    for(ibyte = 0; ibyte < count; ibyte++) {
+    	achar = (char)bytes[ibyte];
+    	if (isprint(achar))
+    		fprintf(logfile, "%c", achar);
+    	else
+			fprintf(logfile, ".");
+    }
+    fprintf(logfile, "\n");
 }
 
 #endif
