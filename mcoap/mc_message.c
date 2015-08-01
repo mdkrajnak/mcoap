@@ -152,7 +152,6 @@ uint32_t mc_message_buffer_size(mc_message_t* message) {
 
 uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	uint32_t bpos = 0;
-	uint32_t src_pos = 0;
 	uint32_t tmp = ms_swap_u32(message->header);
 
 	if (mc_message_buffer_size(message) > buffer->nbytes) {
@@ -163,7 +162,8 @@ uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 	memcpy(buffer->bytes, &tmp, sizeof(uint32_t));
 	bpos += sizeof(message->header);
 
-	if (mc_buffer_copy_to(buffer, message->token->nbytes, &bpos, message->token, &src_pos) == 0) return 0;
+	if (mc_buffer_copy_to(buffer, bpos, message->token, 0, message->token->nbytes) == 0) return 0;
+	bpos += message->token->nbytes;
 
 	if (mc_options_list_to_buffer(message->options, buffer, &bpos) == 0) return 0;
 
@@ -172,7 +172,8 @@ uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer) {
 		buffer->bytes[bpos] = 0xff;
 		bpos++;
 
-		if (mc_buffer_copy_to(buffer, message->payload->nbytes, &bpos, message->payload, 0) == 0) return 0;
+		if (mc_buffer_copy_to(buffer, bpos, message->payload, 0, message->payload->nbytes) == 0) return 0;
+		bpos += message->payload->nbytes;
 	}
 
 
@@ -217,12 +218,13 @@ mc_message_t* mc_message_from_buffer(mc_message_t* message, mc_buffer_t* buffer,
 			ms_log_debug("Invalid beginning of payload marker: 0x%x", marker);
 			return 0;
 		}
-		bpos++;
+		(*bpos)++;
 
 		pllen = remaining - 1;
-		mc_buffer_init(message->payload, pllen, ms_calloc(pllen, uint8_t));
+		message->payload = mc_buffer_init(mc_buffer_alloc(), pllen, ms_calloc(pllen, uint8_t));
 
-		if (mc_buffer_copy_to(message->payload, pllen, 0, buffer, bpos) == 0) return 0;
+		if (mc_buffer_copy_to(message->payload, 0, buffer, *bpos, pllen) == 0) return 0;
+		*bpos += pllen;
 	}
 
 	/* Todo, should we check the header version? */

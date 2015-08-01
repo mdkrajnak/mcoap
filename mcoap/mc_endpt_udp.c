@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define DEFAULT_ENDPT_TIMEOUT 0.2
+#define DEFAULT_ENDPT_TIMEOUT 0.05
 
 mc_endpt_udp_t* mc_endpt_udp_alloc() {
 	return ms_calloc(1, mc_endpt_udp_t);
@@ -146,7 +146,9 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
 	mc_message_t* msg;
 	int err;
 
+	addrlen = sizeof fromaddr;
 	rdsize = endpt->rdbuffer.nbytes;
+	mn_timeout_markstart(&endpt->tmout);
 	err = mn_socket_recvfrom(&endpt->sock, (char*)endpt->rdbuffer.bytes, endpt->rdbuffer.nbytes, (size_t*)&endpt->rdbuffer.nbytes, &fromaddr, &addrlen, &endpt->tmout);
 
 	if (err != MN_DONE) {
@@ -156,7 +158,7 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
 	else {
 		bpos = 0;
 		ms_log_debug("Received response with %d bytes", endpt->rdbuffer.nbytes);
-		ms_log_bytes(ms_debug, endpt->rdbuffer.nbytes, endpt->rdbuffer.bytes);
+		/* ms_log_bytes(ms_debug, endpt->rdbuffer.nbytes, endpt->rdbuffer.bytes); */
 
 		msg = mc_message_from_buffer(mc_message_alloc(), &endpt->rdbuffer, &bpos);
 	}
@@ -173,6 +175,7 @@ int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_messag
 	int err;
 
 	bufsize = mc_message_to_buffer(msg, &endpt->wrbuffer);
+	mn_timeout_markstart(&endpt->tmout);
 	err = mn_socket_sendto(&endpt->sock, (const char*)endpt->wrbuffer.bytes, bufsize, &sent, toaddr, (socklen_t)sizeof(struct sockaddr_in), &endpt->tmout);
 	return err;
 }
