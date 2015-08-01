@@ -11,6 +11,7 @@
 #include "msys/ms_log.h"
 #include "mnet/mn_timeout.h"
 #include "mcoap/mc_uri.h"
+#include "mcoap/mc_code.h"
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_endpt_udp.h"
 
