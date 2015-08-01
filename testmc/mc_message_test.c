@@ -172,7 +172,7 @@ static void test_message_roundtrip(CuTest* tc) {
     uint8_t code = 1;
     uint16_t message_id = 2;
     uint8_t tk_value = 3;
-    uint8_t pl_value = 10;
+    uint8_t pl_value = 65;
 
     token = mc_buffer_init(mc_buffer_alloc(), 1, ms_copy_uint8(1, &tk_value));
     options = mc_options_list_vinit(mc_options_list_alloc(), 1, mc_option_init_str(mc_option_alloc(), 4, ms_copy_str("a")));
@@ -201,8 +201,19 @@ static void test_message_roundtrip(CuTest* tc) {
     CuAssert(tc, "byte[5] is 0x41", buffer->bytes[5] == (uint8_t)0x41);
     CuAssert(tc, "byte[6] is 0x61", buffer->bytes[6] == (uint8_t)0x61);
     CuAssert(tc, "byte[7] is 0xff", buffer->bytes[7] == (uint8_t)0xff);
-    CuAssert(tc, "byte[8] is 0x0a", buffer->bytes[8] == (uint8_t)0x0a);
+    CuAssert(tc, "byte[8] is 0x0a", buffer->bytes[8] == pl_value);
 
+    uint32_t pos = 0;
+    mc_message_t* actual = mc_message_from_buffer(mc_message_alloc(), buffer, &pos);
+
+    CuAssert(tc, "Same header", actual->header == message->header);
+    CuAssert(tc, "Same noptions", actual->options->noptions == message->options->noptions);
+    CuAssert(tc, "Same token nbytes", actual->token->nbytes == message->token->nbytes);
+    CuAssert(tc, "Has payload", actual->payload);
+    CuAssert(tc, "Has payload bytes", actual->payload->nbytes == 1);
+    CuAssert(tc, "Has payload value", actual->payload->bytes[0] == pl_value);
+
+    ms_free(mc_message_deinit(actual));
     ms_free(mc_message_deinit(message));
 }
 
