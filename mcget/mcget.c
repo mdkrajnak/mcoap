@@ -9,19 +9,43 @@
 
 #include "msys/ms_memory.h"
 #include "msys/ms_log.h"
+#include "mnet/mn_timeout.h"
 #include "mcoap/mc_uri.h"
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_endpt_udp.h"
+
+static void print_token(mc_buffer_t* token) {
+	uint32_t ibyte;
+
+	printf("token:    ");
+	for (ibyte = 0; ibyte < token->nbytes; ibyte++) {
+		printf("%x", token->bytes[ibyte]);
+	}
+	printf("\n");
+}
 
 static void print_msg(mc_message_t* const msg) {
 	if (msg == 0) {
 		printf("no response received\n");
 	}
 	else {
-		printf("Received message with msgid %d.\n", mc_message_get_message_id(msg));
+		uint16_t code = mc_message_get_code(msg);
+		printf("version:  %d.\n", mc_message_get_version(msg));
+		printf("type:     %d.\n", mc_message_get_type(msg));
+		printf("msgid:    %d.\n", mc_message_get_message_id(msg));
+		print_token(msg->token);
+		printf("category: %d.\n", mc_code_get_category(code));
+		printf("detail:   %d.\n", mc_code_get_category(code));
 
 		/** @todo check content type. */
-		printf("%.*s\n", msg->payload->nbytes, msg->payload->bytes);
+		if (msg->payload) {
+
+			/** @todo check content type. */
+			if (msg->payload) printf("%.*s\n", msg->payload->nbytes, msg->payload->bytes);
+		}
+		else {
+			printf("No payload!\n");
+		};
 	}
 }
 
@@ -31,9 +55,12 @@ static void get_uri(unsigned short port, char* const uri) {
 	uint16_t msgid;
 	mc_message_t* msg;
 	int ntries;
+	double start, end;
 
 	mc_uri_to_address(&addr, uri);
 	mc_endpt_udp_init(&endpt, 512, 512, "0.0.0.0", port);
+
+	start = mn_gettime();
 	msgid = mc_endpt_udp_get(&endpt, &addr, 0, uri);
 
 	printf("msgid: %d, uri %s\n", msgid, uri);
@@ -44,6 +71,8 @@ static void get_uri(unsigned short port, char* const uri) {
 		msg = mc_endpt_udp_recv(&endpt);
 		ntries++;
 	}
+	end = mn_gettime();
+	printf("%g seconds elapsed.\n", end - start);
 
 	print_msg(msg);
 
