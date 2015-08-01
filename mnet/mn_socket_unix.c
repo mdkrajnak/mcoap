@@ -49,18 +49,18 @@ int mn_socket_waitfd(mn_socket_t* sock, int sw, mn_timeout_t* tout) {
     int ret;
     fd_set rfds, wfds, *rp, *wp;
     struct timeval tv, *tp;
-    double t;
+    double tleft;
     if (mn_timeout_iszero(tout)) return MN_TIMEOUT;  /* optimize timeout == 0 case */
     do {
-        /* must set bits within loop, because select may have modifed them */
+        /* must set bits within loop, because select may have modified them */
         rp = wp = NULL;
         if (sw & WAITFD_R) { FD_ZERO(&rfds); FD_SET(*sock, &rfds); rp = &rfds; }
         if (sw & WAITFD_W) { FD_ZERO(&wfds); FD_SET(*sock, &wfds); wp = &wfds; }
-        t = mn_timeout_getretry(tout);
+        tleft = mn_timeout_getretry(tout);
         tp = NULL;
-        if (t >= 0.0) {
-            tv.tv_sec = (int)t;
-            tv.tv_usec = (int)((t-tv.tv_sec)*1.0e6);
+        if (tleft >= 0.0) {
+            tv.tv_sec = (int)tleft;
+            tv.tv_usec = (int)((tleft-tv.tv_sec)*1.0e6);
             tp = &tv;
         }
         ret = select(*sock+1, rp, wp, NULL, tp);

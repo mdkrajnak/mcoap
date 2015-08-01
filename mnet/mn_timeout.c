@@ -69,7 +69,7 @@ double mn_timeout_getstart(mn_timeout_t* tout) {
 /**
  * Determines how much time we have left for the next system call,
  * if the previous call was a failure
- * @return the number of ms left or -1 if there is no time limit
+ * @return the number of sec left or -1 if there is no time limit
  */
 double mn_timeout_getretry(mn_timeout_t* tout) {
     if (tout->block < 0.0 && tout->total < 0.0) {
@@ -92,7 +92,7 @@ double mn_timeout_getretry(mn_timeout_t* tout) {
 /**
  * Marks the operation start time in structure.
  */
-mn_timeout_t* timeout_markstart(mn_timeout_t* tout) {
+mn_timeout_t* mn_timeout_markstart(mn_timeout_t* tout) {
     tout->start = mn_gettime();
     return tout;
 }
