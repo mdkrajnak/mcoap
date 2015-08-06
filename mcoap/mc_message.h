@@ -9,6 +9,10 @@
 
 #include "mcoap/mc_options_list.h"
 
+#define MC_CONFIRM    0
+#define MC_NOCONFIRM  1
+#define MC_ACK        2
+#define MC_RESET      3
 
 typedef struct mc_message mc_message_t;
 struct mc_message {
@@ -65,6 +69,9 @@ mc_message_t* mc_message_rst_init(
     
 uint8_t mc_message_get_version(mc_message_t* message);
 uint8_t mc_message_get_type(mc_message_t* message);
+int mc_message_is_ack(mc_message_t* msg);
+int mc_message_is_confirmable(mc_message_t* msg);
+int mc_message_is_reset(mc_message_t* msg);
 uint8_t mc_message_get_token_len(mc_message_t* message);
 uint8_t mc_message_get_code(mc_message_t* message);
 uint16_t mc_message_get_message_id(mc_message_t* message);

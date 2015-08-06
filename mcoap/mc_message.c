@@ -22,11 +22,6 @@
 #define MESSAGE_CODE_MASK      0x00FF0000
 #define MESSAGE_MSG_ID_MASK    0x0000FFFF
 
-#define CONFIRMABLE     0
-#define NONCONFIRMABLE  1
-#define ACKNOWLEDGEMENT 2
-#define RESET           3
-
 
 mc_message_t* mc_message_alloc() {
     return ms_calloc(1, mc_message_t);
@@ -58,7 +53,7 @@ mc_message_t* mc_message_con_init(
     mc_options_list_t* options,
     mc_buffer_t* payload) {
     
-    return mc_message_init(message, MESSAGE_VERSION, CONFIRMABLE, code, message_id, token, options, payload);
+    return mc_message_init(message, MESSAGE_VERSION, MC_CONFIRM, code, message_id, token, options, payload);
 }
 
 mc_message_t* mc_message_non_init(
@@ -69,7 +64,7 @@ mc_message_t* mc_message_non_init(
     mc_options_list_t* options,
     mc_buffer_t* payload) {
     
-	return mc_message_init(message, MESSAGE_VERSION, NONCONFIRMABLE, code, message_id, token, options, payload);
+	return mc_message_init(message, MESSAGE_VERSION, MC_NOCONFIRM, code, message_id, token, options, payload);
 }
 
 mc_message_t* mc_message_ack_init(
@@ -80,7 +75,7 @@ mc_message_t* mc_message_ack_init(
     mc_options_list_t* options,
     mc_buffer_t* payload) {
     
-	return mc_message_init(message, MESSAGE_VERSION, ACKNOWLEDGEMENT, code, message_id, token, options, payload);
+	return mc_message_init(message, MESSAGE_VERSION, MC_ACK, code, message_id, token, options, payload);
 }
     
 mc_message_t* mc_message_rst_init(
@@ -91,7 +86,7 @@ mc_message_t* mc_message_rst_init(
     mc_options_list_t* options,
     mc_buffer_t* payload) {
     
-	return mc_message_init(message, MESSAGE_VERSION, RESET, code, message_id, token, options, payload);
+	return mc_message_init(message, MESSAGE_VERSION, MC_RESET, code, message_id, token, options, payload);
 }
     
 mc_message_t* mc_message_deinit(mc_message_t* message) {
@@ -117,6 +112,18 @@ uint8_t mc_message_get_version(mc_message_t* message) {
 
 uint8_t mc_message_get_type(mc_message_t* message) {
     return mc_header_get_message_type(message->header);
+}
+
+int mc_message_is_ack(mc_message_t* msg) {
+    return (MC_ACK == mc_message_get_type(msg));
+}
+
+int mc_message_is_confirmable(mc_message_t* msg) {
+    return (MC_CONFIRM == mc_message_get_type(msg));
+}
+
+int mc_message_is_reset(mc_message_t* msg) {
+    return (MC_RESET == mc_message_get_type(msg));
 }
 
 uint8_t mc_message_get_token_len(mc_message_t* message) {

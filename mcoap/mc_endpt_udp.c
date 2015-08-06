@@ -8,6 +8,7 @@
 #include "msys/ms_memory.h"
 #include "msys/ms_log.h"
 #include "mnet/mn_timeout.h"
+#include "mnet/mn_sockaddr.h"
 #include "mcoap/mc_endpt_udp.h"
 #include "mcoap/mc_code.h"
 #include "mcoap/mc_message.h"
@@ -47,13 +48,15 @@ mc_endpt_udp_t* mc_endpt_udp_init(mc_endpt_udp_t* const endpt, uint32_t rdsize, 
 	mc_buffer_init(&endpt->rdbuffer, rdsize, ms_calloc(rdsize, uint8_t));
 	mc_buffer_init(&endpt->wrbuffer, wrsize, ms_calloc(wrsize, uint8_t));
 
+	mc_buffer_queue_init(&endpt->confirmq);
+
 	mn_timeout_init(&endpt->tmout, DEFAULT_ENDPT_TIMEOUT, -1.0);
 	if (hostname == 0) {
 		ms_log_debug("Hostname is null");
 		return 0;
 	}
 
-	if (!mn_inetaddr_init(&addr, hostname, port)) {
+	if (!mn_sockaddr_inet_init(&addr, hostname, port)) {
 		ms_log_debug("Failed to initialize address %s:%d", hostname, port);
 		return 0;
 	}
@@ -64,8 +67,9 @@ mc_endpt_udp_t* mc_endpt_udp_init(mc_endpt_udp_t* const endpt, uint32_t rdsize, 
 		return 0;
 	}
 
-	if (mn_socket_bind(&endpt->sock, &addr, sizeof(sockaddr_t)) != MN_DONE) {
-		ms_log_debug("Failed to bind socket on %s:%d", hostname, port);
+    err = mn_socket_bind(&endpt->sock, &addr, sizeof(sockaddr_t));
+	if (err != MN_DONE) {
+		ms_log_debug("Error %s (%d) binding socket on %s:%d", mn_strerror(err), err, hostname, port);
 		return 0;
 	}
 
@@ -166,23 +170,113 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
 	/** Reset the read buffer size to it original value. */
 	endpt->rdbuffer.nbytes = rdsize;
 
+	if (mc_message_is_ack(msg)) {
+	    mc_buffer_queue_remove(&endpt->confirmq, mc_message_get_message_id(msg));
+	}
+
 	return msg;
 }
 
-int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg) {
-	uint32_t bufsize;
-	size_t sent;
+static void call_result_fn(mc_endpt_udp_t* endpt, mc_endpt_result_fn_t* resultfn, uint16_t msgid, int err) {
+    if (resultfn > 1) {
+        (*resultfn)((mc_endpt_id_t)endpt, msgid, err);
+    }
+}
+
+static int send_entry_buffer(mc_endpt_udp_t* const endpt, mc_buffer_queue_entry_t* entry) {
+    size_t sent;
+    int err;
+    socklen_t tolen = (socklen_t)sizeof(struct sockaddr_in);
+
+    if (entry->xmitcounter > MAX_RETRANSMIT) {
+        /* @todo replace UNKNOWN with something else, retransmit failed? */
+        call_result_fn(endpt, entry->resultfn, entry->msgid, MN_UNKNOWN);
+        mc_buffer_queue_remove(&endpt->confirmq, entry->msgid);
+    }
+    else {
+        mn_timeout_markstart(&endpt->tmout);
+        err = mn_socket_sendto(&endpt->sock, (char*)entry->msg->bytes, entry->msg->nbytes, &sent, entry->dest, tolen, &endpt->tmout);
+        if (err == MN_DONE) {
+            entry->xmitcounter++;
+        }
+        else {
+            call_result_fn(endpt, entry->resultfn, entry->msgid, err);
+            mc_buffer_queue_remove(&endpt->confirmq, entry->msgid);
+        }
+    }
+    return err;
+}
+
+static int send_con_entry() {
+    return 0;
+}
+
+/**
+ * Message has already been serialized into the output buffer.
+ */
+static int send_endpt_buffer(mc_endpt_udp_t* const endpt, uint32_t nbytes, sockaddr_t* toaddr) {
+    size_t sent;
+    socklen_t tolen = (socklen_t)sizeof(struct sockaddr_in);
+
+    mn_timeout_markstart(&endpt->tmout);
+    return mn_socket_sendto(&endpt->sock, (const char*)endpt->wrbuffer.bytes, nbytes, &sent, toaddr, tolen, &endpt->tmout);
+}
+
+/**
+ * Only use to send the first con msg as this loads it into the confirm queue.
+ */
+static int send_con_msg(mc_endpt_udp_t* const endpt, uint32_t nbytes, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t* resultfn) {
+    mc_buffer_queue_entry_t* entry = mc_buffer_queue_add(
+        &endpt->confirmq,
+        mc_message_get_message_id(msg),
+        mn_sockaddr_copy(toaddr),
+        mc_buffer_copy(&endpt->wrbuffer, 0, nbytes),
+        resultfn);
+
+    int err = send_endpt_buffer(endpt, nbytes, toaddr);
+    if (err == MN_DONE) {
+        entry->xmitcounter++;
+    }
+    else {
+        call_result_fn(endpt, resultfn, mc_message_get_message_id(msg), err);
+        mc_buffer_queue_remove_entry(&endpt->confirmq, entry);
+    }
+    return err;
+}
+
+int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t* resultfn) {
+	uint32_t nbytes;
 	int err;
 
-	bufsize = mc_message_to_buffer(msg, &endpt->wrbuffer);
-	mn_timeout_markstart(&endpt->tmout);
-	err = mn_socket_sendto(&endpt->sock, (const char*)endpt->wrbuffer.bytes, bufsize, &sent, toaddr, (socklen_t)sizeof(struct sockaddr_in), &endpt->tmout);
+	/* Serialize the mesage into the endpt's write buffer. */
+	nbytes = mc_message_to_buffer(msg, &endpt->wrbuffer);
+
+	if (mc_message_is_confirmable(msg)) {
+	    err = send_con_msg(endpt, nbytes, toaddr, msg, resultfn);
+	}
+	else {
+	    err = send_endpt_buffer(endpt, nbytes, toaddr);
+	}
+
 	return err;
 }
 
-/** Return 0 on error. */
-uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, int confirm, char* const uri) {
-	mc_message_t msg;
+/**
+ * Iterate over the confirmation queue entries, if timeout retransmit
+ * or notify client of error if too many tries.
+ */
+mc_endpt_udp_t* mc_endpt_udp_check_queues(mc_endpt_udp_t* const endpt) {
+    /* @todo continue implementation here. */
+    return endpt;
+}
+
+/**
+ * Note the confirm argument to a function pointer for the completion callback.
+ * Use 0 for non-confirmable message, 1 for a confirmable with no callback.
+ * @return 0 on error.
+ */
+uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t* resultfn, char* const uri) {
+    mc_message_t msg;
 	mc_options_list_t* list;
 	uint16_t msgid;
 	mc_buffer_t* token;
@@ -192,8 +286,14 @@ uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, i
 	msgid = mc_endpt_udp_nextid(endpt);
 	token = mc_token_create2(msgid);
 
-	mc_message_non_init(&msg, MC_GET, msgid, token, list, 0);
-	err = mc_endpt_udp_send(endpt, addr, &msg);
+	if (resultfn != 0) {
+	    mc_message_con_init(&msg, MC_GET, msgid, token, list, 0);
+	}
+	else {
+	    mc_message_non_init(&msg, MC_GET, msgid, token, list, 0);
+	}
+
+	err = mc_endpt_udp_send(endpt, addr, &msg, resultfn);
 	if (err != MN_DONE) {
 		ms_log_debug("Error sending message: %d, %s", err, mn_strerror(err));
 		msgid = 0;

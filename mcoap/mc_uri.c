@@ -262,7 +262,7 @@ mc_options_list_t* mc_uri_to_options(mc_options_list_t* const list, sockaddr_t* 
 	/* and if the destination matches the URI, then allocate the option array. */
 	/* Note the RFC only omits the host if it is an IP literal. */
 	nopts = estimatenopts(current);
-	mn_inetaddr_init(&uriaddr, host, port);
+	mn_sockaddr_inet_init(&uriaddr, host, port);
 	if (!equaladdr(&uriaddr, dest)) {
 		nopts += 2;
 	}
@@ -335,7 +335,7 @@ sockaddr_t* mc_uri_to_address(sockaddr_t* const addr, char* const uri) {
 		return 0;
 	}
 
-	result = mn_inetaddr_init(addr, host, port);
+	result = mn_sockaddr_inet_init(addr, host, port);
 	ms_free(host);
 
 	return result;

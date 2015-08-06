@@ -12,6 +12,21 @@
 #include "mnet/mn_socket.h"
 #include "mcoap/mc_buffer.h"
 #include "mcoap/mc_message.h"
+#include "mcoap/mc_buffer_queue.h"
+
+/* @todo consider creating a struct and init-with-defaults function for this information. */
+/* Default transmission parameters. */
+#define ACK_TIMEOUT       2  	/**< seconds. */
+#define ACK_RANDOM_FACTOR 1.5	/**< multiplier. */
+#define MAX_RETRANSMIT    4		/**< count. */
+#define NSTART            1		/**< count. */
+#define LEISURE           5		/**< seconds. */
+#define PROBING_RATE      1		/**< bytes/second. */
+
+#define MAX_TRANSMIT_SPAN	45	/* ACK_TIMEOUT * ((2 ** MAX_RETRANSMIT) - 1) * ACK_RANDOM_FACTOR */
+#define MAX_LATENCY			100
+#define PROCESSING_DELAY	ACK_TIMEOUT
+#define EXCHANGE_LIFETIME   247	/* MAX_TRANSMIT_SPAN + (2 * MAX_LATENCY) + PROCESSING_DELAY */
 
 typedef int (*mc_endpt_read_fn_t)(sockaddr_t* from, mc_message_t* msg);
 
@@ -23,6 +38,7 @@ struct mc_endpt_udp {
 	mc_endpt_read_fn_t readfn;
 	mc_buffer_t rdbuffer;
 	mc_buffer_t wrbuffer;
+	mc_buffer_queue_t confirmq;
 	int running;
 	uint16_t nextid;
 };
@@ -34,8 +50,8 @@ mc_endpt_udp_t* mc_endpt_udp_deinit(mc_endpt_udp_t* const endpt);
 mc_endpt_udp_t* mc_endpt_udp_start(mc_endpt_udp_t* const endpt, mc_endpt_read_fn_t readfn);
 mc_endpt_udp_t* mc_endpt_udp_stop(mc_endpt_udp_t* const endpt);
 mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt);
-int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg);
-uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, int confirm, char* const uri);
+int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t* resultfn);
+uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t* resultfn, char* const uri);
 
 /** @} */
 

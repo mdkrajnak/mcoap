@@ -46,15 +46,15 @@ double mn_timeout_get(mn_timeout_t* tout) {
         return -1;
     } 
     else if (tout->block < 0.0) {
-        double t = tout->total - mn_gettime() + tout->start;
-        return MAX(t, 0.0);
+        double delta = tout->total - mn_gettime() + tout->start;
+        return MAX(delta, 0.0);
     } 
     else if (tout->total < 0.0) {
         return tout->block;
     } 
     else {
-        double t = tout->total - mn_gettime() + tout->start;
-        return MIN(tout->block, MAX(t, 0.0));
+        double delta = tout->total - mn_gettime() + tout->start;
+        return MIN(tout->block, MAX(delta, 0.0));
     }
 }
 

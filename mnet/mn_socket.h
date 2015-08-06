@@ -24,9 +24,6 @@
 typedef struct sockaddr sockaddr_t;
 typedef struct hostent hostent_t;
 
-/* Function for initializing inetaddr_t structs from a hostname and port number. */
-sockaddr_t* mn_inetaddr_init(sockaddr_t* local, const char *hostname, unsigned short port);
-
 /* Define an abstact socket interface. */
 int mn_socket_open();
 int mn_socket_close();

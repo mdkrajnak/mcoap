@@ -59,7 +59,7 @@ static void get_uri(unsigned short port, char* const uri) {
 	double start, end;
 
 	mc_uri_to_address(&addr, uri);
-	mc_endpt_udp_init(&endpt, 512, 512, "0.0.0.0", port);
+	mc_endpt_udp_init(&endpt, 1024, 1024, "0.0.0.0", port);
 
 	start = mn_gettime();
 	msgid = mc_endpt_udp_get(&endpt, &addr, 0, uri);
