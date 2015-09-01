@@ -10,6 +10,7 @@
 #include "msys/ms_copy.h"
 #include "msys/ms_endian.h"
 #include "msys/ms_log.h"
+#include "mnet/mn_sockaddr.h"
 #include "mcoap/mc_options_list.h"
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_header.h"

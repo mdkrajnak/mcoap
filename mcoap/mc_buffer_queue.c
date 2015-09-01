@@ -163,11 +163,19 @@ static mc_buffer_queue_entry_t* remove_entry(mc_buffer_queue_t* queue, mc_buffer
     return current;
 }
 
-mc_buffer_queue_t* mc_buffer_queue_remove_entry(mc_buffer_queue_t* queue, mc_buffer_queue_entry_t* entry) {
+/**
+ * Remove the given entry and delete it.
+ * Unlike many functions, it actually frees the entry pointer
+ * and not just deinit'ing its contents.
+ * @return the *next* entry in the list.
+ */
+mc_buffer_queue_entry_t* mc_buffer_queue_remove_entry(mc_buffer_queue_t* queue, mc_buffer_queue_entry_t* entry) {
+    mc_buffer_queue_entry_t* result = entry->next;
+
     entry = remove_entry(queue, entry);
     ms_free(queue_entry_deinit(entry));
 
-    return queue;
+    return result;;
 }
 
 /**

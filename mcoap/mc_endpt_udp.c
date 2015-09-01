@@ -178,7 +178,7 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
 }
 
 static void call_result_fn(mc_endpt_udp_t* endpt, mc_endpt_result_fn_t* resultfn, uint16_t msgid, int err) {
-    if (resultfn > 1) {
+    if (resultfn > (mc_endpt_result_fn_t*)1) {
         (*resultfn)((mc_endpt_id_t)endpt, msgid, err);
     }
 }
@@ -189,26 +189,15 @@ static int send_entry_buffer(mc_endpt_udp_t* const endpt, mc_buffer_queue_entry_
     socklen_t tolen = (socklen_t)sizeof(struct sockaddr_in);
 
     if (entry->xmitcounter > MAX_RETRANSMIT) {
-        /* @todo replace UNKNOWN with something else, retransmit failed? */
-        call_result_fn(endpt, entry->resultfn, entry->msgid, MN_UNKNOWN);
-        mc_buffer_queue_remove(&endpt->confirmq, entry->msgid);
+        err = MN_TIMEOUT;
     }
     else {
         mn_timeout_markstart(&endpt->tmout);
         err = mn_socket_sendto(&endpt->sock, (char*)entry->msg->bytes, entry->msg->nbytes, &sent, entry->dest, tolen, &endpt->tmout);
-        if (err == MN_DONE) {
-            entry->xmitcounter++;
-        }
-        else {
-            call_result_fn(endpt, entry->resultfn, entry->msgid, err);
-            mc_buffer_queue_remove(&endpt->confirmq, entry->msgid);
-        }
+
+        entry->xmitcounter++;
     }
     return err;
-}
-
-static int send_con_entry() {
-    return 0;
 }
 
 /**
@@ -266,8 +255,53 @@ int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_messag
  * or notify client of error if too many tries.
  */
 mc_endpt_udp_t* mc_endpt_udp_check_queues(mc_endpt_udp_t* const endpt) {
-    /* @todo continue implementation here. */
+    int err;
+    mc_buffer_queue_entry_t* current;
+
+    current = endpt->confirmq.first;
+    while (current) {
+        if (mn_timeout_get(&current->timeout) == 0.0) {
+
+            /* Double the timeout we'll wait for the confirm. */
+            /* Implements the exponential back off algorithm. */
+            mn_timeout_init(&current->timeout, -1.0, current->timeout.total * 2.0);
+            mn_timeout_markstart(&current->timeout);
+
+            err = send_entry_buffer(endpt, current);
+            if (err != MN_DONE) {
+                ms_log_debug("Error: %d, resending confirmable: %d, xmit: %d", err, current->msgid, current->xmitcounter);
+                call_result_fn(endpt, current->resultfn, current->msgid, err);
+                current = mc_buffer_queue_remove_entry(&endpt->confirmq, current);
+            }
+            else {
+                current = current->next;
+            }
+        }
+        else {
+            current = current->next;
+        }
+    }
+
     return endpt;
+}
+
+/**
+ * Send a "ack only" message, e.g. without a piggy backed response.
+ * @return send error code.
+ */
+int mc_endpt_udp_ack(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, uint16_t msgid) {
+    mc_message_t msg;
+    int err;
+
+    mc_message_init(&msg, 1, MC_ACK, 0, msgid, 0, 0, 0);
+
+    err = mc_endpt_udp_send(endpt, addr, &msg, 0);
+    if (err != MN_DONE) {
+        ms_log_debug("Error sending message: %d, %s", err, mn_strerror(err));
+    }
+
+    mc_message_deinit(&msg);
+    return err;
 }
 
 /**

@@ -209,7 +209,7 @@ static void test_message_roundtrip(CuTest* tc) {
     CuAssert(tc, "Same header", actual->header == message->header);
     CuAssert(tc, "Same noptions", actual->options->noptions == message->options->noptions);
     CuAssert(tc, "Same token nbytes", actual->token->nbytes == message->token->nbytes);
-    CuAssert(tc, "Has payload", actual->payload);
+    CuAssert(tc, "Has payload", actual->payload != 0);
     CuAssert(tc, "Has payload bytes", actual->payload->nbytes == 1);
     CuAssert(tc, "Has payload value", actual->payload->bytes[0] == pl_value);
 

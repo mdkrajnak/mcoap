@@ -5,7 +5,7 @@
  */
 #include "msys/ms_memory.h"
 #include "msys/ms_copy.h"
-#include "mnet/mn_socket.h"
+#include "mnet/mn_sockaddr.h"
 #include "mcoap/mc_uri.h"
 #include <string.h>
 

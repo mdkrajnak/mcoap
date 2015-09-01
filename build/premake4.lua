@@ -27,45 +27,55 @@ configuration("gmake")
 project("cutest")
     kind("StaticLib")
     language("C")
-    files({ "../cutest/**.h", "../cutest/**.c" })
+    files({ "../cutest/*.h", "../cutest/*.c" })
 
 project("msys")
     kind("StaticLib")
     language("C")
-    files({ "../msys/**.h", "../msys/**.c" })
-	
+    files({ "../msys/*.h", "../msys/*.c" })
+
 project("mnet")
     kind("StaticLib")
     language("C")
-    files({ "../mnet/**.h", "../mnet/**.c" })
-	
+    files({ "../mnet/*.h", "../mnet/*.c" })
+
 project("mcoap")
     kind("StaticLib")
     language("C")
-    files({ "../mcoap/**.h", "../mcoap/**.c" })
+    files({ "../mcoap/*.h", "../mcoap/*.c" })
 	
     
 -- Application project files.  Includes application and platform specific options.
 
+project("mcget")
+    kind("ConsoleApp")
+    language("C")
+    files({ "../mcget/*.h", "../mcget/*.c" })
+    links({ "mcoap", "mnet", "msys", "cutest"})
+    configuration("windows")
+        links("ws2_32")
+    configuration("gmake")
+        links({ "pthread", "m" })
+
 project("testms")
     kind("ConsoleApp")
     language("C")
-    files({ "../testms/**.h", "../testms/**.c" })
+    files({ "../testms/*.h", "../testms/*.c" })
     links({ "msys", "cutest"})
     configuration("windows")
         links("ws2_32")
     configuration("gmake")
-        links("m")
+        links({ "pthread", "m" })
         
 project("testmc")
     kind("ConsoleApp")
     language("C")
-    files({ "../testmc/**.h", "../testmc/**.c" })
-    links({ "mcoap", "msys", "cutest"})
+    files({ "../testmc/*.h", "../testmc/*.c" })
+    links({ "mcoap", "mnet", "msys", "cutest"})
     configuration("windows")
         links("ws2_32")
     configuration("gmake")
-        links("m")
+        links({ "pthread", "m" })
         
 
         

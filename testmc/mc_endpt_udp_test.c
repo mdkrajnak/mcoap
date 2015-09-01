@@ -5,6 +5,8 @@
 #include "msys/ms_memory.h"
 #include "mcoap/mc_code.h"
 #include "mcoap/mc_uri.h"
+
+#include "mcoap/mc_buffer_queue.h"
 #include "mcoap/mc_endpt_udp.h"
 #include "testmc/mc_endpt_udp_test.h"
 
@@ -38,6 +40,7 @@ static void print_msg(mc_message_t* const msg) {
 		if (msg->payload) printf("%.*s\n", msg->payload->nbytes, msg->payload->bytes);
 	}
 }
+
 /**
  *  Given two endpoints: alice and bob,
  *  when we send a get message from alice to bob,
@@ -61,7 +64,7 @@ static void test_send_recv(CuTest* tc) {
 	amsgid = mc_endpt_udp_get(&alice, &addr, 0, uri);
 	amsg = mc_endpt_udp_recv(&bob);
 
-	CuAssert(tc, "msg received",  amsg);
+	CuAssert(tc, "msg received",  amsg != 0);
 
 	bmsgid = mc_message_get_message_id(amsg);
 
@@ -72,6 +75,38 @@ static void test_send_recv(CuTest* tc) {
 	mc_endpt_udp_deinit(&bob);
 
 	CuAssert(tc, "msgid's are equal",  amsgid == bmsgid);
+}
+
+ int test_result_fn(mc_endpt_id_t endpt, uint16_t msgid, int status);
+
+/**
+ *  Given one endpoints,
+ *  when we send a message and it's not ack'd,
+ *  then it is retransmitted when we check the queues for timeouts.
+ */
+static void test_rexmit_con_msg(CuTest* tc) {
+    sockaddr_t addr;
+    mc_endpt_udp_t alice;
+    uint16_t amsgid;
+    char* uri = "coap://localhost:5679/test";
+    uint16_t aport = 5678;
+    int ctr;
+
+    mc_uri_to_address(&addr, uri);
+    mc_endpt_udp_init(&alice, 512, 512, "0.0.0.0", aport);
+
+    amsgid = mc_endpt_udp_get(&alice, &addr, 0, uri);
+
+    ctr = alice.confirmq.first->xmitcounter;
+    CuAssert(tc, "message is enqueued", amsgid != 0);
+    CuAssert(tc, "message is enqueued", ctr == 0);
+
+
+    mc_endpt_udp_check_queues(&alice);
+
+    mc_endpt_udp_deinit(&alice);
+
+    CuAssert(tc, "msgid's are equal", 0);
 
 }
 
@@ -80,6 +115,7 @@ CuSuite* mc_endpt_udp_suite() {
     CuSuite* suite = CuSuiteNew();
 
     SUITE_ADD_TEST(suite, test_send_recv);
+    SUITE_ADD_TEST(suite, test_rexmit_con_msg);
         
     return suite;
 }
