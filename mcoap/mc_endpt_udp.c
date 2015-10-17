@@ -177,8 +177,8 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
     return msg;
 }
 
-static void call_result_fn(mc_endpt_udp_t* endpt, mc_endpt_result_fn_t* resultfn, uint16_t msgid, int err) {
-    if (resultfn > (mc_endpt_result_fn_t*)1) {
+static void call_result_fn(mc_endpt_udp_t* endpt, mc_endpt_result_fn_t resultfn, uint16_t msgid, int err) {
+    if (resultfn > (mc_endpt_result_fn_t)1) {
         (*resultfn)((mc_endpt_id_t)endpt, msgid, err);
     }
 }
@@ -214,7 +214,7 @@ static int send_endpt_buffer(mc_endpt_udp_t* const endpt, uint32_t nbytes, socka
 /**
  * Only use to send the first con msg as this loads it into the confirm queue.
  */
-static int send_con_msg(mc_endpt_udp_t* const endpt, uint32_t nbytes, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t* resultfn) {
+static int send_con_msg(mc_endpt_udp_t* const endpt, uint32_t nbytes, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t resultfn) {
     mc_buffer_queue_entry_t* entry = mc_buffer_queue_add(
         &endpt->confirmq,
         mc_message_get_message_id(msg),
@@ -233,7 +233,7 @@ static int send_con_msg(mc_endpt_udp_t* const endpt, uint32_t nbytes, sockaddr_t
     return err;
 }
 
-int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t* resultfn) {
+int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t resultfn) {
     uint32_t nbytes;
     int err;
 
@@ -309,7 +309,7 @@ int mc_endpt_udp_ack(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, uint16
  * Use 0 for non-confirmable message, 1 for a confirmable with no callback.
  * @return 0 on error.
  */
-uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t* resultfn, char* const uri) {
+uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, char* const uri) {
     mc_message_t msg;
     mc_options_list_t* list;
     uint16_t msgid;

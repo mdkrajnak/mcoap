@@ -1,5 +1,5 @@
 BODY { 
-	font-family: "Verdana,Arial,sans-serif";
+	font-family: "Verdana, Arial, sans-serif";
 	font-size: 10pt;
 }
 PRE.LIST {
@@ -16,6 +16,6 @@ PRE.SNIP {
 PRE.CONSOLE {
 	color: #CCCCCC;
 	background: #000000;
-	font-family: "Courier New,Courier";
+	font-family: "Courier New, Courier";
 	padding: 1ex;
 }

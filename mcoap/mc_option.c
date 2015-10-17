@@ -82,16 +82,16 @@ mc_option_t* mc_option_init_uint32(mc_option_t* option, uint16_t option_num, uin
     if (option->value.bytes) ms_free(option->value.bytes);
     if (value <= UINT8_MAX) {
     	uint8_t temp = value;
-    	mc_buffer_init(&option->value, 1, (uint8_t*)ms_copy_uint8(1, &temp));
+    	mc_buffer_init(&option->value, 1, ms_copy_uint8(1, &temp));
     }
     else if (value <= UINT16_MAX) {
     	uint16_t temp = value;
     	temp = ms_swap_u16(temp);
-    	mc_buffer_init(&option->value, 2, (uint8_t*)ms_copy_uint16(1, &temp));
+    	mc_buffer_init(&option->value, 2, ms_copy_uint16(1, &temp));
     }
     else {
     	uint32_t temp = ms_swap_u32(value);
-    	mc_buffer_init(&option->value, 4, (uint8_t*)ms_copy_uint32(1, &temp));
+    	mc_buffer_init(&option->value, 4, ms_copy_uint32(1, &temp));
     }
 
     return option;

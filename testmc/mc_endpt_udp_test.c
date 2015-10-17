@@ -77,10 +77,12 @@ static void test_send_recv(CuTest* tc) {
     CuAssert(tc, "msgid's are equal",  amsgid == bmsgid);
 }
 
- int test_result_fn(mc_endpt_id_t endpt, uint16_t msgid, int status);
+int test_result_fn(mc_endpt_id_t endpt, uint16_t msgid, int status) {
+    printf("endpt %d, msgid: %d, status %d\n", endpt, msgid, status);
+}
 
 /**
- *  Given one endpoints,
+ *  Given one endpoint,
  *  when we send a message and it's not ack'd,
  *  then it is retransmitted when we check the queues for timeouts.
  */
@@ -95,20 +97,37 @@ static void test_rexmit_con_msg(CuTest* tc) {
     mc_uri_to_address(&addr, uri);
     mc_endpt_udp_init(&alice, 512, 512, "0.0.0.0", aport);
 
-    amsgid = mc_endpt_udp_get(&alice, &addr, 0, uri);
+    amsgid = mc_endpt_udp_get(&alice, &addr, test_result_fn, uri);
 
     ctr = alice.confirmq.first->xmitcounter;
     CuAssert(tc, "message is enqueued", amsgid != 0);
-    CuAssert(tc, "message is enqueued", ctr == 0);
+    CuAssert(tc, "msg was sent once", ctr == 1);
 
+    // Update the timeout entry to force a retransmission.
+    alice.confirmq.first->timeout.start -= (alice.confirmq.first->timeout.total * 2);
 
     mc_endpt_udp_check_queues(&alice);
+    ctr = alice.confirmq.first->xmitcounter;
 
+    // Cleanup
     mc_endpt_udp_deinit(&alice);
 
-    CuAssert(tc, "msgid's are equal", 0);
-
+    CuAssert(tc, "message was sent twice", ctr == 2);
 }
+
+/**
+ *  Given one endpoint,
+ *  when retransmit a message up to its retransmission limit,
+ *  then the result function is called with a timeout status.
+ */
+
+/**
+ *  Given two endpoints,
+ *  when we send a message and it is ack'd,
+ *  then it is removed from alices retransmit queue.
+ *  NOTE! Is the result function called?
+ */
+
 
 /* Run all of the tests in this test suite. */
 CuSuite* mc_endpt_udp_suite() {

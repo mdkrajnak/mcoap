@@ -41,7 +41,7 @@ static mc_buffer_queue_entry_t* queue_entry_init(
 		uint32_t msgid,
 		sockaddr_t* dest,
 		mc_buffer_t* msg,
-		mc_endpt_result_fn_t* resultfn,
+		mc_endpt_result_fn_t resultfn,
 		mc_buffer_queue_entry_t* prev,
 		mc_buffer_queue_entry_t* next) {
     entry->msgid = msgid;
@@ -98,7 +98,7 @@ mc_buffer_queue_t* mc_buffer_queue_init(mc_buffer_queue_t* queue) {
  * Add to the end of the queue.
  * @return the queue.
  */
-mc_buffer_queue_entry_t* mc_buffer_queue_add(mc_buffer_queue_t* queue, uint16_t msgid, sockaddr_t* dest, mc_buffer_t* msg, mc_endpt_result_fn_t* resultfn) {
+mc_buffer_queue_entry_t* mc_buffer_queue_add(mc_buffer_queue_t* queue, uint16_t msgid, sockaddr_t* dest, mc_buffer_t* msg, mc_endpt_result_fn_t resultfn) {
 
     mc_buffer_queue_entry_t* entry;
 
