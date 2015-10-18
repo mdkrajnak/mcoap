@@ -116,6 +116,7 @@ uint8_t mc_message_get_type(mc_message_t* message) {
 }
 
 int mc_message_is_ack(mc_message_t* msg) {
+    if (msg == 0) return 0;
     return (MC_ACK == mc_message_get_type(msg));
 }
 
@@ -127,7 +128,7 @@ int mc_message_is_reset(mc_message_t* msg) {
     return (MC_RESET == mc_message_get_type(msg));
 }
 
-uint8_t mc_message_get_token_len(mc_message_t* message) {
+uint8_t mc_message_get_token_len(mc_message_t* const message) {
     return mc_header_get_token_length(message->header);
 }
 
@@ -137,6 +138,10 @@ uint8_t mc_message_get_code(mc_message_t* message) {
 
 uint16_t mc_message_get_message_id(mc_message_t* message) {
     return mc_header_get_message_id(message->header);
+}
+
+mc_buffer_t* mc_message_copy_token(mc_message_t* const message) {
+    return mc_buffer_copy(message->token, 0, mc_message_get_token_len(message));
 }
 
 uint32_t mc_message_buffer_size(mc_message_t* message) {

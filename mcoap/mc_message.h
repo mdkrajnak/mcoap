@@ -72,9 +72,10 @@ uint8_t mc_message_get_type(mc_message_t* message);
 int mc_message_is_ack(mc_message_t* msg);
 int mc_message_is_confirmable(mc_message_t* msg);
 int mc_message_is_reset(mc_message_t* msg);
-uint8_t mc_message_get_token_len(mc_message_t* message);
+uint8_t mc_message_get_token_len(mc_message_t* const message);
 uint8_t mc_message_get_code(mc_message_t* message);
 uint16_t mc_message_get_message_id(mc_message_t* message);
+mc_buffer_t* mc_message_copy_token(mc_message_t* const message);
 
 uint32_t mc_message_buffer_size(mc_message_t* message);
 uint32_t mc_message_to_buffer(mc_message_t* message, mc_buffer_t* buffer);

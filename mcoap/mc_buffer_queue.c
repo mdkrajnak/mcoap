@@ -170,12 +170,35 @@ static mc_buffer_queue_entry_t* remove_entry(mc_buffer_queue_t* queue, mc_buffer
  * @return the *next* entry in the list.
  */
 mc_buffer_queue_entry_t* mc_buffer_queue_remove_entry(mc_buffer_queue_t* queue, mc_buffer_queue_entry_t* entry) {
-    mc_buffer_queue_entry_t* result = entry->next;
+    mc_buffer_queue_entry_t* result;
+    if (entry == 0) return 0;
 
+    result = entry->next;
     entry = remove_entry(queue, entry);
     ms_free(queue_entry_deinit(entry));
 
-    return result;;
+    return result;
+}
+
+/**
+ * Return the entry with the matching message id.
+ * @return the matching entry or 0 if queue is 0 or entry not found.
+ */
+mc_buffer_queue_entry_t* mc_buffer_queue_get(mc_buffer_queue_t* queue, uint16_t msgid) {
+    mc_buffer_queue_entry_t* current;
+
+    if (queue == 0) return 0;
+
+    current = queue->first;
+    while (current) {
+        if (current->msgid == msgid) {
+            return current;
+        }
+        else {
+            current = current->next;
+        }
+    }
+    return 0;
 }
 
 /**
@@ -183,21 +206,11 @@ mc_buffer_queue_entry_t* mc_buffer_queue_remove_entry(mc_buffer_queue_t* queue, 
  * @return the queued msg_id or UINT32_MAX if not found.
  */
 uint32_t mc_buffer_queue_remove(mc_buffer_queue_t* queue, uint16_t msgid) {
-    mc_buffer_queue_entry_t* current = queue->first;
-    uint32_t msg_id = UINT32_MAX;
+    mc_buffer_queue_entry_t* entry = mc_buffer_queue_get(queue, msgid);
+    if (entry == 0) return UINT32_MAX;
 
-    while (current) {
-        if (current->msgid == msgid) {
-
-            /* An entry with a matching flow id found, remove it. */
-            mc_buffer_queue_remove_entry(queue, current);
-            current = 0;
-        }
-        else {
-            current = current->next;
-        }
-    }
-    return msg_id;
+    mc_buffer_queue_remove_entry(queue, entry);
+    return msgid;
 }
 
 /**

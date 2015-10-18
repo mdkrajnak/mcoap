@@ -38,6 +38,7 @@ mc_buffer_queue_t* mc_buffer_queue_alloc();
 mc_buffer_queue_t* mc_buffer_queue_init(mc_buffer_queue_t* queue);
 mc_buffer_queue_entry_t* mc_buffer_queue_add(mc_buffer_queue_t* queue, uint16_t msgid, sockaddr_t* dest, mc_buffer_t* msg, mc_endpt_result_fn_t resultfn);
 uint32_t mc_buffer_queue_count(const mc_buffer_queue_t* queue);
+mc_buffer_queue_entry_t* mc_buffer_queue_get(mc_buffer_queue_t* queue, uint16_t msgid);
 mc_buffer_queue_entry_t* mc_buffer_queue_remove_entry(mc_buffer_queue_t* queue, mc_buffer_queue_entry_t* entry);
 uint32_t mc_buffer_queue_remove(mc_buffer_queue_t* queue, uint16_t msgid);
 mc_buffer_queue_t* mc_buffer_queue_deinit(mc_buffer_queue_t* queue);

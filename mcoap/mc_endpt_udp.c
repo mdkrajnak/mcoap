@@ -142,6 +142,12 @@ mc_endpt_udp_t* mc_endpt_udp_stop(mc_endpt_udp_t* const endpt) {
     return endpt;
 }
 
+static void call_result_fn(mc_endpt_udp_t* endpt, mc_endpt_result_fn_t resultfn, uint16_t msgid, int err) {
+    if (resultfn > (mc_endpt_result_fn_t)1) {
+        (*resultfn)((mc_endpt_id_t)endpt, msgid, err);
+    }
+}
+
 mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
     sockaddr_t fromaddr;
     socklen_t addrlen;
@@ -171,16 +177,15 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
     endpt->rdbuffer.nbytes = rdsize;
 
     if (mc_message_is_ack(msg)) {
-        mc_buffer_queue_remove(&endpt->confirmq, mc_message_get_message_id(msg));
+        uint16_t msgid = mc_message_get_message_id(msg);
+        mc_buffer_queue_entry_t* entry = mc_buffer_queue_get(&endpt->confirmq, msgid);
+
+        /* Note that err should be MN_DONE at this point. */
+        call_result_fn(endpt, entry->resultfn, entry->msgid, err);
+        mc_buffer_queue_remove_entry(&endpt->confirmq, entry);
     }
 
     return msg;
-}
-
-static void call_result_fn(mc_endpt_udp_t* endpt, mc_endpt_result_fn_t resultfn, uint16_t msgid, int err) {
-    if (resultfn > (mc_endpt_result_fn_t)1) {
-        (*resultfn)((mc_endpt_id_t)endpt, msgid, err);
-    }
 }
 
 static int send_entry_buffer(mc_endpt_udp_t* const endpt, mc_buffer_queue_entry_t* entry) {
@@ -188,7 +193,7 @@ static int send_entry_buffer(mc_endpt_udp_t* const endpt, mc_buffer_queue_entry_
     int err;
     socklen_t tolen = (socklen_t)sizeof(struct sockaddr_in);
 
-    if (entry->xmitcounter > MAX_RETRANSMIT) {
+    if (entry->xmitcounter >= MAX_RETRANSMIT) {
         err = MN_TIMEOUT;
     }
     else {
@@ -253,6 +258,9 @@ int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_messag
 /**
  * Iterate over the confirmation queue entries, if timeout retransmit
  * or notify client of error if too many tries.
+ *
+ * NOTE! The entry is *NOT* removed until after the result function.
+ * Consider adding an accessor that the callee can use to inspect the failed message.
  */
 mc_endpt_udp_t* mc_endpt_udp_check_queues(mc_endpt_udp_t* const endpt) {
     int err;
@@ -289,11 +297,12 @@ mc_endpt_udp_t* mc_endpt_udp_check_queues(mc_endpt_udp_t* const endpt) {
  * Send a "ack only" message, e.g. without a piggy backed response.
  * @return send error code.
  */
-int mc_endpt_udp_ack(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, uint16_t msgid) {
+int mc_endpt_udp_ack(mc_endpt_udp_t*const endpt, sockaddr_t*const addr, mc_buffer_t* token, uint16_t msgid) {
     mc_message_t msg;
     int err;
 
-    mc_message_init(&msg, 1, MC_ACK, 0, msgid, 0, 0, 0);
+    // @todo what should the token setting be for an ack message?
+    mc_message_init(&msg, 1, MC_ACK, 0, msgid, token, 0, 0);
 
     err = mc_endpt_udp_send(endpt, addr, &msg, 0);
     if (err != MN_DONE) {
