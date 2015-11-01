@@ -97,6 +97,19 @@ mc_option_t* mc_option_init_uint32(mc_option_t* option, uint16_t option_num, uin
     return option;
 }
 
+/**
+ * Copy an option to a destination option pointer.
+ * Frees bytes in to option if non-null.
+ */
+mc_option_t* mc_option_copy_to(mc_option_t* to, mc_option_t* from) {
+	uint8_t* bytes;
+
+	if (to == 0) return 0;
+
+	bytes = ms_copy_uint8(from->value.nbytes, from->value.bytes);
+	return	mc_option_init(to, from->option_num, from->value.nbytes, bytes);
+}
+
 uint32_t mc_option_as_uint32(const mc_option_t* option) {
 	uint32_t result;
 

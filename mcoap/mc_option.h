@@ -46,6 +46,7 @@ mc_option_t* mc_option_ndeinit(mc_option_t* option, uint32_t count);
 mc_option_t* mc_option_init(mc_option_t* option, uint16_t option_num, uint32_t nbytes, uint8_t* bytes);
 mc_option_t* mc_option_init_uint32(mc_option_t* option, uint16_t option_num, uint32_t value);
 mc_option_t* mc_option_init_str(mc_option_t* option, uint16_t option_num, char* value);
+mc_option_t* mc_option_copy_to(mc_option_t* to, mc_option_t* from);
 uint32_t mc_option_as_uint32(const mc_option_t* option);
 uint32_t mc_option_buffer_size(const mc_option_t* option, uint32_t prev_option_num);
 

@@ -70,7 +70,7 @@ static void test_send_recv(CuTest* tc) {
     mc_endpt_udp_init(&alice, 512, 512, "0.0.0.0", aport);
     mc_endpt_udp_init(&bob, 512, 512, "0.0.0.0", bport);
 
-    amsgid = mc_endpt_udp_get(&alice, &addr, 0, uri);
+    amsgid = mc_endpt_udp_get(&alice, &addr, 0, uri, 0);
     amsg = mc_endpt_udp_recv(&bob);
 
     CuAssert(tc, "msg received",  amsg != 0);
@@ -121,7 +121,7 @@ static void test_rexmit_con_msg(CuTest* tc) {
     mc_uri_to_address(&addr, uri);
     mc_endpt_udp_init(&alice, 512, 512, "0.0.0.0", aport);
 
-    amsgid = mc_endpt_udp_get(&alice, &addr, test_result_fn, uri);
+    amsgid = mc_endpt_udp_get(&alice, &addr, test_result_fn, uri, 0);
 
     ctr = alice.confirmq.first->xmitcounter;
     CuAssert(tc, "message is enqueued", msg_is_in_queue(&alice, amsgid));
@@ -158,7 +158,7 @@ static void test_max_rexmit_con_msg(CuTest* tc) {
     mc_uri_to_address(&addr, uri);
     mc_endpt_udp_init(&alice, 512, 512, "0.0.0.0", aport);
 
-    amsgid = mc_endpt_udp_get(&alice, &addr, test_result_fn, uri);
+    amsgid = mc_endpt_udp_get(&alice, &addr, test_result_fn, uri, 0);
 
     do {
         // Update the timeout entry to force a retransmission.
@@ -202,7 +202,7 @@ static void test_send_ack(CuTest* tc) {
     mc_endpt_udp_init(&alice, 512, 512, "0.0.0.0", aport);
     mc_endpt_udp_init(&bob, 512, 512, "0.0.0.0", bport);
 
-    amsgid = mc_endpt_udp_get(&alice, &bob_addr, test_result_fn, bob_uri);
+    amsgid = mc_endpt_udp_get(&alice, &bob_addr, test_result_fn, bob_uri, 0);
     CuAssert(tc, "message is enqueued", msg_is_in_queue(&alice, amsgid));
 
     amsg = mc_endpt_udp_recv(&bob);

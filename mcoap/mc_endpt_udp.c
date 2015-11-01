@@ -314,27 +314,45 @@ int mc_endpt_udp_ack(mc_endpt_udp_t*const endpt, sockaddr_t*const addr, mc_buffe
 }
 
 /**
- * Note the confirm argument to a function pointer for the completion callback.
- * Use 0 for non-confirmable message, 1 for a confirmable with no callback.
- * @return 0 on error.
+ * Create options from URI and to address.
+ * If there are extra options merge them into the list.
  */
-uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, char* const uri) {
+static  mc_options_list_t* mk_options(char* const uri, sockaddr_t* const addr, mc_options_list_t* extra) {
+    mc_options_list_t* list = mc_uri_to_options(mc_options_list_alloc(), addr, uri);
+    if (extra != 0) {
+        mc_options_list_t* merged = mc_options_list_merge(list, extra);
+        ms_free(mc_options_list_deinit(list));
+        list = merged;
+    }
+    return list;
+}
+
+static uint16_t mk_message(mc_message_t* msg, mc_endpt_udp_t* const endpt, uint8_t code, mc_endpt_result_fn_t resultfn, mc_options_list_t* list, mc_buffer_t* payload) {
+    uint16_t msgid = mc_endpt_udp_nextid(endpt);
+    mc_buffer_t* token = mc_token_create2(msgid);
+
+    if (resultfn != 0) {
+        mc_message_con_init(msg, code, msgid, token, list, payload);
+    }
+    else {
+        mc_message_non_init(msg, code, msgid, token, list, payload);
+    }
+
+    return msgid;
+}
+
+/**
+ * Generic message sending function to suppport implementation of
+ * mc_endpt_udp_get, put, post, and delete.
+ */
+static uint16_t send_msg(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, uint8_t code, char* const uri, mc_options_list_t* extra, mc_buffer_t* payload) {
     mc_message_t msg;
     mc_options_list_t* list;
     uint16_t msgid;
-    mc_buffer_t* token;
     int err;
 
-    list = mc_uri_to_options(mc_options_list_alloc(), addr, uri);
-    msgid = mc_endpt_udp_nextid(endpt);
-    token = mc_token_create2(msgid);
-
-    if (resultfn != 0) {
-        mc_message_con_init(&msg, MC_GET, msgid, token, list, 0);
-    }
-    else {
-        mc_message_non_init(&msg, MC_GET, msgid, token, list, 0);
-    }
+    list = mk_options(uri, addr, extra);
+    msgid = mk_message(&msg, endpt, code, resultfn, list, payload);
 
     err = mc_endpt_udp_send(endpt, addr, &msg, resultfn);
     if (err != MN_DONE) {
@@ -344,6 +362,38 @@ uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, m
 
     mc_message_deinit(&msg);
     return msgid;
+}
+
+/**
+ * Get the uri specified, include extra options if any.
+ * @return the message id.
+ */
+uint16_t mc_endpt_udp_delete(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, char* const uri, mc_options_list_t* extra) {
+    return send_msg(endpt, addr, resultfn, MC_DELETE, uri, extra, 0);
+}
+
+/**
+ * Get the uri specified, include extra options if any.
+ * @return the message id.
+ */
+uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, char* const uri, mc_options_list_t* extra) {
+    return send_msg(endpt, addr, resultfn, MC_GET, uri, extra, 0);
+}
+
+/**
+ * Post the uri specified, include extra options if any.
+ * @return the message id.
+ */
+uint16_t mc_endpt_udp_post(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, char* const uri, mc_options_list_t* extra, mc_buffer_t* payload) {
+    return send_msg(endpt, addr, resultfn, MC_POST, uri, extra, payload);
+}
+
+/**
+ * Put the uri specified, include extra options if any.
+ * @return the message id.
+ */
+uint16_t mc_endpt_udp_put(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, char* const uri, mc_options_list_t* extra, mc_buffer_t* payload) {
+    return send_msg(endpt, addr, resultfn, MC_PUT, uri, extra, payload);
 }
 
 /** @} */

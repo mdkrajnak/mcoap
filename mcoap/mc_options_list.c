@@ -70,6 +70,59 @@ mc_options_list_t* mc_options_list_vinit(mc_options_list_t* list, uint32_t nopti
     return mc_options_list_init(list, noptions, options);
 }
 
+/**
+ * Add a variable length list to an existing options list.
+ */
+mc_options_list_t* mc_options_list_copy(mc_options_list_t* list) {
+	mc_option_t* options;
+	mc_option_t* to;
+	mc_option_t* from;
+	uint32_t ioption;
+
+	if (list == 0) return 0;
+
+	options = mc_option_nalloc(list->noptions);
+	for (ioption = 0; ioption < list->noptions; ioption++) {
+		to = options + ioption;
+		from = list->options + ioption;
+		mc_option_copy_to(to, from);
+	}
+
+	return mc_options_list_init(mc_options_list_alloc(), list->noptions, options);
+}
+
+/**
+ * Create a new list from two lists.
+ * @return the new list, 0 if both or null, or a copy of the non-null list if one arg is null.
+ */
+mc_options_list_t* mc_options_list_merge(mc_options_list_t* list1, mc_options_list_t* list2) {
+	uint32_t ioption;
+	mc_option_t* to;
+	mc_option_t* from;
+	uint32_t noptions;
+	mc_option_t* options;
+
+	if (list1 == 0) return mc_options_list_copy(list2);
+	if (list2 == 0) return mc_options_list_copy(list1);
+
+	noptions = list1->noptions + list2->noptions;
+	options = mc_option_nalloc(noptions);
+
+	for (ioption = 0; ioption < list1->noptions; ioption++) {
+		to = options + ioption;
+		from = list1->options + ioption;
+		mc_option_copy_to(to, from);
+	}
+
+	for (ioption = 0; ioption < list2->noptions; ioption++) {
+		to = options + (list1->noptions + ioption);
+		from = list2->options + ioption;
+		mc_option_copy_to(to, from);
+	}
+
+	return mc_options_list_init(mc_options_list_alloc(), noptions, options);
+}
+
 uint32_t mc_options_list_buffer_size(const mc_options_list_t* list) {
 	mc_option_t* current;
 	uint32_t noption;

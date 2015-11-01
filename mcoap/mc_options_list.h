@@ -20,6 +20,8 @@ mc_options_list_t* mc_options_list_alloc();
 mc_options_list_t* mc_options_list_deinit(mc_options_list_t* list);
 mc_options_list_t* mc_options_list_init(mc_options_list_t* list, uint32_t noptions, mc_option_t* options);
 mc_options_list_t* mc_options_list_vinit(mc_options_list_t* list, uint32_t noptions, ...);
+mc_options_list_t* mc_options_list_copy(mc_options_list_t* list);
+mc_options_list_t* mc_options_list_merge(mc_options_list_t* list1, mc_options_list_t* list2);
 mc_options_list_t* mc_options_list_from_buffer(mc_options_list_t* list, mc_buffer_t* buffer, uint32_t* bpos);
 int mc_options_list_get_index(mc_options_list_t* list, uint32_t start, uint16_t optnum);
 mc_option_t* mc_options_list_get(mc_options_list_t* list, int index);

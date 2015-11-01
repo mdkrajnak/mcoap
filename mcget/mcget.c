@@ -63,7 +63,7 @@ static void get_uri(unsigned short port, char* const uri) {
 
 	// Note we pass in 0 for the result function so the message is nonconfirmable.
 	start = mn_gettime();
-	msgid = mc_endpt_udp_get(&endpt, &addr, 0, uri);
+	msgid = mc_endpt_udp_get(&endpt, &addr, 0, uri, 0);
 
 	printf("msgid: %d, uri %s\n", msgid, uri);
 

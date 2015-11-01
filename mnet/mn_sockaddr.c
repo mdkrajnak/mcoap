@@ -37,12 +37,17 @@ static int host2addr(struct in_addr* addr, const char* hostname) {
 }
 
 /**
+ * Allocate a sockaddr struct.
+ */
+sockaddr_t* mn_sockaddr_alloc() {
+    return ms_calloc(1, sockaddr_t);
+}
+/**
  * Create a copy of src.
  * @return the copy.
  */
 sockaddr_t* mn_sockaddr_copy(sockaddr_t* src) {
-    sockaddr_t* result = ms_calloc(1, sockaddr_t);
-    return (sockaddr_t*)memcpy(result, src, sizeof(sockaddr_t));
+    return (sockaddr_t*)memcpy(mn_sockaddr_alloc(), src, sizeof(sockaddr_t));
 }
 
 /**
