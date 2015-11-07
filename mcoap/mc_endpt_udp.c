@@ -88,32 +88,41 @@ mc_endpt_udp_t* mc_endpt_udp_deinit(mc_endpt_udp_t* const endpt) {
     return endpt;
 }
 
-static void endpt_udp_reader(void* data) {
+/** Primary worker function for executing a read/dispatch loop. */
+static void endpt_udp_loop(mc_endpt_udp_t* endpt) {
     mn_timeout_t tout;
-    sockaddr_t fromaddr;
-    socklen_t addrlen;
-    mc_endpt_udp_t* rendpt;
-    uint32_t rdsize;
-    uint32_t bpos;
 
+    /* Initialize timeout. */
+    /* @todo should initializing the timeout be part of mc_endpt_udp_recv()? */
+    /* @todo parameterize the timeout values. */
+    mn_timeout_init(&tout, 0.2, -0.2);
+
+    while (endpt->running) {
+        /* Allocate and read a message. */
+        mc_message_t* msg = mc_endpt_udp_recv(endpt);
+
+        if (msg) {
+            /* There's no locking around setting the running flag. */
+            /* This should be fine as longer as the using program does not set running outside this thread. */
+            endpt->running = endpt->readfn(msg);
+            ms_free(mc_message_deinit(msg));
+        }
+
+        mc_endpt_udp_check_queues(endpt);
+    }
+}
+
+static void endpt_udp_reader(void* data) {
+    mc_endpt_udp_t* rendpt = (mc_endpt_udp_t*)data;
+    endpt_udp_loop(rendpt);
+}
+
+void mc_endpt_udp_loop(mc_endpt_udp_t* endpt, mc_endpt_read_fn_t readfn) {
     /* Initialize variables. */
     /* Note we need to save the original buffer size and reset for each read. */
-    mn_timeout_init(&tout, 0.2, -0.2);
-    rendpt = (mc_endpt_udp_t*)data;
-    rdsize = rendpt->rdbuffer.nbytes;
-
-    while (rendpt->running) {
-        /* Allocate and read a message. */
-        mc_message_t* msg = mc_message_alloc();
-        mn_socket_recvfrom(&rendpt->sock, (char*)rendpt->rdbuffer.bytes, rendpt->rdbuffer.nbytes, (size_t*)&rendpt->rdbuffer.nbytes, &fromaddr, &addrlen, &tout);
-
-        /* Parse and handle the message, then cleanup. */
-        bpos = 0;
-        msg = mc_message_from_buffer(msg, &rendpt->rdbuffer, &bpos);
-        rendpt->readfn(&fromaddr, msg);
-        if (msg) ms_free(mc_message_deinit(msg));
-        rendpt->rdbuffer.nbytes = rdsize;
-    }
+    endpt->running = 1;
+    endpt->readfn = readfn;
+    endpt_udp_loop(endpt);
 }
 
 uint16_t mc_endpt_udp_nextid(mc_endpt_udp_t* endpt) {
@@ -171,6 +180,7 @@ mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt) {
         /* ms_log_bytes(ms_debug, endpt->rdbuffer.nbytes, endpt->rdbuffer.bytes); */
 
         msg = mc_message_from_buffer(mc_message_alloc(), &endpt->rdbuffer, &bpos);
+        msg->from = mn_sockaddr_copy(&fromaddr);
     }
 
     /** Reset the read buffer size to it original value. */

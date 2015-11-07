@@ -20,6 +20,7 @@ struct mc_message {
     mc_buffer_t* token;
     mc_options_list_t* options;
     mc_buffer_t* payload;
+    sockaddr_t* from;
 };
 
 mc_message_t* mc_message_alloc();

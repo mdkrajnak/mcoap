@@ -11,8 +11,7 @@ Need to complete thread logic for mc_endpt_udp_start() to manage retransmits and
   * One looping thread that does both or two so we can choose one or the other or both?
   * How do we manage sharing the socket for send/recv operations? Locking.
   * How do we manage sharing the socket for sending first time messages and retransmits?
-  
-mc_endpt_read_fn_t: should the first argument be the endpoint?
+ 
   
 Start a high level programmers manual.
 

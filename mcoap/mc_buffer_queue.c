@@ -3,9 +3,7 @@
 #include "mcoap/mc_endpt_udp.h"
 #include "mcoap/mc_buffer_queue.h"
 
-// @todo need an entry_deinit() function.
-
-/** 
+/**
  * Allocate an entry for the queue.
  * @return the entry.
  */

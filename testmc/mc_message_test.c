@@ -4,6 +4,7 @@
 
 #include "msys/ms_copy.h"
 #include "msys/ms_memory.h"
+#include "mnet/mn_sockaddr.h"
 #include "mcoap/mc_message.h"
 #include "testmc/mc_message_test.h"
 

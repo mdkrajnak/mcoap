@@ -42,6 +42,7 @@ mc_message_t* mc_message_init(
     message->token = token;
     message->options = options;
     message->payload = payload;
+    message->from = 0;
 
     return message;
 }
@@ -102,6 +103,10 @@ mc_message_t* mc_message_deinit(mc_message_t* message) {
     if (message->payload) {
         ms_free(mc_buffer_deinit(message->payload));
         message->payload = 0;
+    }
+    if (message->from) {
+        ms_free(message->from);
+        message->from = 0;
     }
 
     return 0;

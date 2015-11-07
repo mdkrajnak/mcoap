@@ -28,7 +28,7 @@
 #define PROCESSING_DELAY	ACK_TIMEOUT
 #define EXCHANGE_LIFETIME   247	/* MAX_TRANSMIT_SPAN + (2 * MAX_LATENCY) + PROCESSING_DELAY */
 
-typedef int (*mc_endpt_read_fn_t)(sockaddr_t* from, mc_message_t* msg);
+typedef int (*mc_endpt_read_fn_t)(mc_message_t* msg);
 
 typedef struct mc_endpt_udp mc_endpt_udp_t;
 struct mc_endpt_udp {

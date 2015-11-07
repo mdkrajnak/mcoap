@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "msys/ms_memory.h"
 #include "mcoap/mc_header.h"
 #include "testmc/mc_header_test.h"
 

@@ -14,8 +14,16 @@
 
 #include <stdlib.h>
 
-/** Free memory. */
-#define ms_free(ptr) free(ptr)
+/**
+ * Free memory.
+ * Would like to add a ptr = 0 to this macro to avoid freeing const ptr's but
+ * that conflicts with some idioms used the library e.g. ms_free(some_type_deinit(ptr));
+ * Where some_type_deinit() returns ptr to be freed.
+ */
+#define ms_free(ptr) \
+    do { \
+        free(ptr); \
+    } while (0)
 
 /** Alloc fixed size block. */
 #define ms_malloc(count, decl) (decl*)malloc(count * sizeof(decl))
