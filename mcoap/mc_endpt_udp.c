@@ -117,9 +117,11 @@ static void endpt_udp_reader(void* data) {
     endpt_udp_loop(rendpt);
 }
 
+/**
+ * Run the read dispatch loop until either the readfn returns false or
+ * the calling program sets endpt->running to 0.
+ */
 void mc_endpt_udp_loop(mc_endpt_udp_t* endpt, mc_endpt_read_fn_t readfn) {
-    /* Initialize variables. */
-    /* Note we need to save the original buffer size and reset for each read. */
     endpt->running = 1;
     endpt->readfn = readfn;
     endpt_udp_loop(endpt);
@@ -135,6 +137,9 @@ uint16_t mc_endpt_udp_nextid(mc_endpt_udp_t* endpt) {
     return result;
 }
 
+/**
+ * Run the read dispatch loop in a background thread.
+ */
 mc_endpt_udp_t* mc_endpt_udp_start(mc_endpt_udp_t* const endpt, mc_endpt_read_fn_t readfn) {
     endpt->running = 1;
     endpt->readfn = readfn;

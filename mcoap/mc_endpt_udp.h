@@ -50,6 +50,7 @@ mc_endpt_udp_t* mc_endpt_udp_deinit(mc_endpt_udp_t* const endpt);
 mc_endpt_udp_t* mc_endpt_udp_start(mc_endpt_udp_t* const endpt, mc_endpt_read_fn_t readfn);
 mc_endpt_udp_t* mc_endpt_udp_stop(mc_endpt_udp_t* const endpt);
 mc_message_t* mc_endpt_udp_recv(mc_endpt_udp_t* const endpt);
+void mc_endpt_udp_loop(mc_endpt_udp_t* endpt, mc_endpt_read_fn_t readfn);
 int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t resultfn);
 mc_endpt_udp_t* mc_endpt_udp_check_queues(mc_endpt_udp_t* const endpt);
 int mc_endpt_udp_ack(mc_endpt_udp_t *const endpt, sockaddr_t *const addr, mc_buffer_t *token, uint16_t msgid);
