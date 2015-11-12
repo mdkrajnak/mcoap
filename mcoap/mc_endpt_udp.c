@@ -11,11 +11,9 @@
 #include "mnet/mn_sockaddr.h"
 #include "mcoap/mc_endpt_udp.h"
 #include "mcoap/mc_code.h"
-#include "mcoap/mc_message.h"
 #include "mcoap/mc_token.h"
 #include "mcoap/mc_uri.h"
 
-#include <stdlib.h>
 #include <math.h>
 
 #define DEFAULT_ENDPT_TIMEOUT 0.05
@@ -30,7 +28,7 @@ mc_endpt_udp_t* mc_endpt_udp_alloc() {
 static uint16_t random_id() {
     unsigned int seed = (unsigned int)round(mn_gettime()*1000.0);
     srand(seed);
-    return rand();
+    return (uint16_t)rand();
 }
 
 mc_endpt_udp_t* mc_endpt_udp_init(mc_endpt_udp_t* const endpt, uint32_t rdsize, uint32_t wrsize, const char* hostname, unsigned short port) {
@@ -274,8 +272,9 @@ int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_messag
  * Iterate over the confirmation queue entries, if timeout retransmit
  * or notify client of error if too many tries.
  *
- * NOTE! The entry is *NOT* removed until after the result function.
- * Consider adding an accessor that the callee can use to inspect the failed message.
+ * NOTE! The entry is *NOT* removed until after the result function is called
+ * Consider adding an accessor that the callee can use to inspect the failed message
+ * while executing the result function.
  */
 mc_endpt_udp_t* mc_endpt_udp_check_queues(mc_endpt_udp_t* const endpt) {
     int err;

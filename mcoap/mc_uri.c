@@ -137,7 +137,7 @@ static char* advanceto(char* const str, char* const chars) {
  */
 static uint32_t estimatenopts(char* const str) {
 	uint32_t nopts = 0;
-	char* pos = (char*)str;
+	char* pos = str;
 
 	while (*pos) {
 		if ((*pos == '/') || (*pos == '?') || (*pos == '&'))
@@ -186,12 +186,14 @@ static char* getquery(char* const uri) {
 static int equaladdr(sockaddr_t* const left, sockaddr_t* const right) {
 	int result;
 
-	/* If one address is null and the other is not return false. */
-	if (left && !right) return 0;
-	if (!left && right) return 0;
+    /* If both address are equal (including if 0) return true.
+	if (left == right) return 1;
 
-	/* if both are null return true. */
-	if (!left && !right) return 1;
+	/* If one address is null and the other is not return false. */
+	if (left == 0) return 0;
+	if (right == 0) return 0;
+
+	/* Compare contents. */
 	if (left->sa_family != right->sa_family) return 0;
 	if (left->sa_family == AF_INET) {
 		result = (0 == memcmp(left, right, sizeof(struct sockaddr_in)));

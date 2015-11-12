@@ -4,9 +4,13 @@ project(testbase)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
 set(SOURCE_FILES
-    testbase.c
+    compare.h
+    compare.c
+    print.h
+    print.c
     core01.h
-    core01.c)
+    core01.c
+    testbase.c accessor.c accessor.h)
 
 add_executable(testbase ${SOURCE_FILES})
 add_dependencies(testbase cutest msys mnet mcoap)

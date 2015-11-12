@@ -62,6 +62,7 @@ uint16_t mc_endpt_udp_post(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, 
 						   char* const uri, mc_options_list_t* extra, mc_buffer_t* payload);
 uint16_t mc_endpt_udp_put(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn,
 						  char* const uri, mc_options_list_t* extra, mc_buffer_t* payload);
+mc_message_t* mc_endpt_udp_get_queued_msg(mc_endpt_udp_t* endpt, uint16_t msgid);
 
 /** @} */
 
