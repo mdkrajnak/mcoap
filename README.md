@@ -15,6 +15,8 @@ Things I'm in the progress of doing before creating an initial release:
   * Revisit Win32 builds and fix. Includes adding Win32 specific settings to new CMake files.
   * Complete a reasonable subset of the [CoAP Plugtest](https://github.com/cabo/td-coap4/) tests.
   * Write a minimal programmers' guide.
+  
+The mcget module has a small command line sample program for GETing a set of CoAP resources.
 
 
 See [RFC 7252](http://tools.ietf.org/html/rfc7252 "RFC 7252") for the CoAP specification.
