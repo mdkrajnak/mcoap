@@ -17,8 +17,8 @@ static void test_address_with_only_host(CuTest* tc) {
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
-	mc_option_t* hopt = mc_options_list_get(options, hindex);
-	mc_option_t* popt = mc_options_list_get(options, pindex);
+	mc_option_t* hopt = mc_options_list_at(options, hindex);
+	mc_option_t* popt = mc_options_list_at(options, pindex);
 
 
 	CuAssert(tc, "is parsable", options != 0);
@@ -41,8 +41,8 @@ static void test_address_with_host_and_port(CuTest* tc) {
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
-	mc_option_t* hopt = mc_options_list_get(options, hindex);
-	mc_option_t* popt = mc_options_list_get(options, pindex);
+	mc_option_t* hopt = mc_options_list_at(options, hindex);
+	mc_option_t* popt = mc_options_list_at(options, pindex);
 
 
 	CuAssert(tc, "is parsable", options != 0);
@@ -65,8 +65,8 @@ static void test_address_ipv6(CuTest* tc) {
 
 	int hindex = mc_options_list_get_index(options, 0, OPTION_URI_HOST);
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
-	mc_option_t* hopt = mc_options_list_get(options, hindex);
-	mc_option_t* popt = mc_options_list_get(options, pindex);
+	mc_option_t* hopt = mc_options_list_at(options, hindex);
+	mc_option_t* popt = mc_options_list_at(options, pindex);
 
 
 	CuAssert(tc, "is parsable", options != 0);
@@ -127,9 +127,9 @@ static void test_address_with_path(CuTest* tc) {
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
 	int rindex = mc_options_list_get_index(options, 0, OPTION_URI_PATH);
 	int qindex = mc_options_list_get_index(options, 0, OPTION_URI_QUERY);
-	mc_option_t* hopt = mc_options_list_get(options, hindex);
-	mc_option_t* popt = mc_options_list_get(options, pindex);
-	mc_option_t* ropt = mc_options_list_get(options, rindex);
+	mc_option_t* hopt = mc_options_list_at(options, hindex);
+	mc_option_t* popt = mc_options_list_at(options, pindex);
+	mc_option_t* ropt = mc_options_list_at(options, rindex);
 
 
 	CuAssert(tc, "is parseable", options != 0);
@@ -161,10 +161,10 @@ static void test_address_with_path_and_query(CuTest* tc) {
 	int pindex = mc_options_list_get_index(options, 0, OPTION_URI_PORT);
 	int rindex = mc_options_list_get_index(options, 0, OPTION_URI_PATH);
 	int qindex = mc_options_list_get_index(options, 0, OPTION_URI_QUERY);
-	mc_option_t* hopt = mc_options_list_get(options, hindex);
-	mc_option_t* popt = mc_options_list_get(options, pindex);
-	mc_option_t* ropt = mc_options_list_get(options, rindex);
-	mc_option_t* qopt = mc_options_list_get(options, qindex);
+	mc_option_t* hopt = mc_options_list_at(options, hindex);
+	mc_option_t* popt = mc_options_list_at(options, pindex);
+	mc_option_t* ropt = mc_options_list_at(options, rindex);
+	mc_option_t* qopt = mc_options_list_at(options, qindex);
 
 
 	CuAssert(tc, "is parseable", options != 0);

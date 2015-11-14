@@ -9,28 +9,23 @@
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_endpt_udp.h"
 
-#include "testbase/core01.h"
+#include "core02_delete_con.h"
 #include "testbase/print.h"
 #include "testbase/compare.h"
 
 #include "accessor.h"
 
 /**
- * Check that the server sends response containing:
+ * Check server sends response containing:
  *
- *  * Code = 2.05 (Content)
- *  * Message ID = CMID, Token = CTOK
- *  * Content-format option
- *  * Non-empty Payload
+ * * Code = 2.02 (Deleted)
+ * * Message ID = CMID, Token = CTOK
+ * * Content-format option if payload non-empty
+ * * Empty or non-empty Payload
  */
 
-int completed_status;
-int completed = 0;
-
-static mc_option_t* get_option(mc_options_list_t* list, uint16_t num) {
-    int index = mc_options_list_get_index(list, 0, num);
-    return mc_options_list_get(list, index);
-}
+static int completed_status;
+static int completed = 0;
 
 static int result_fn(mc_endpt_id_t endpt, uint16_t msgid, int status) {
     (void)endpt;
@@ -42,11 +37,11 @@ static int result_fn(mc_endpt_id_t endpt, uint16_t msgid, int status) {
 }
 
 /**
-*  Given all 0's for the header components
-*  When we create a header,
-*  Then the header is 0
+*  Given a test server,
+*  when send a DELETE in CON mode,
+*  then we get the correct response.
 */
-static void test_client_get_con_mode(CuTest* tc) {
+static void test_delete_con(CuTest* tc) {
     sockaddr_t addr;
     mc_endpt_udp_t endpt;
     uint16_t msgid;
@@ -58,10 +53,12 @@ static void test_client_get_con_mode(CuTest* tc) {
     unsigned short port = 5683;
     char* const uri = "coap://coap.me:5683/test";
 
+    printf("test_delete_con()\n");
+
     mc_uri_to_address(&addr, uri);
     mc_endpt_udp_init(&endpt, 1024, 1024, "0.0.0.0", port);
 
-    msgid = mc_endpt_udp_get(&endpt, &addr, result_fn, uri, 0);
+    msgid = mc_endpt_udp_delete(&endpt, &addr, result_fn, uri, 0);
     token = mc_endpt_udp_copy_queued_token(&endpt, msgid);
 
     msg = 0;
@@ -77,13 +74,21 @@ static void test_client_get_con_mode(CuTest* tc) {
 
     code = mc_message_get_code(msg);
     CuAssert(tc, "Code category is 2", mc_code_get_category(code) == 2);
-    CuAssert(tc, "Code detail is 5", mc_code_get_detail(code) == 5);
+    CuAssert(tc, "Code detail is 2", mc_code_get_detail(code) == 2);
 
     CuAssert(tc, "Received message id should match sent id", mc_header_get_message_id(msg->header) == msgid);
     CuAssert(tc, "Received token should match sent token", mc_buffer_eq(msg->token, token));
 
-    cformat = get_option(msg->options, OPTION_CONTENT_FORMAT);
-    CuAssert(tc, "Format option should exist", cformat != 0);
+    if (msg->payload != 0) {
+        ms_log_debug("The payload is non-null");
+        ms_log_debug("payload: %.*s", msg->payload->nbytes, msg->payload->bytes);
+
+        cformat = mc_options_list_get(msg->options, OPTION_CONTENT_FORMAT);
+        CuAssert(tc, "Format option should exist", cformat != 0);
+    }
+    else {
+        ms_log_debug("The payload is null");
+    }
 
     if (token) ms_free(mc_buffer_deinit(token));
     if (msg) ms_free(mc_message_deinit(msg));
@@ -91,10 +96,10 @@ static void test_client_get_con_mode(CuTest* tc) {
 }
 
 /* Run all of the tests in this test suite. */
-CuSuite* core01_suite() {
+CuSuite* core02_suite() {
     CuSuite* suite = CuSuiteNew();
 
-    SUITE_ADD_TEST(suite, test_client_get_con_mode);
+    SUITE_ADD_TEST(suite, test_delete_con);
 
     return suite;
 }

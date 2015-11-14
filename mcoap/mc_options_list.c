@@ -436,11 +436,16 @@ int mc_options_list_get_index(mc_options_list_t* list, uint32_t start, uint16_t 
 	return -1;
 }
 
-mc_option_t* mc_options_list_get(mc_options_list_t* list, int index) {
+mc_option_t* mc_options_list_at(mc_options_list_t* list, int index) {
 	if (index < 0) return 0;
 	if (index > list->noptions) return 0;
 
 	return (list->options) + index;
+}
+
+mc_option_t* mc_options_list_get(mc_options_list_t* list, uint16_t num) {
+	int index = mc_options_list_get_index(list, 0, num);
+	return mc_options_list_at(list, index);
 }
 
 /** @} */

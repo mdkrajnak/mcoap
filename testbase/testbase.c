@@ -5,7 +5,8 @@
 #include "cutest/CuTest.h"
 #include "msys/ms_log.h"
 
-#include "testbase/core01.h"
+#include "testbase/core01_get_con.h"
+#include "testbase/core02_delete_con.h"
 
 
 #if defined(WIN32) && defined(_DEBUG)
@@ -38,6 +39,7 @@ void run_all_tests() {
     ms_log_debug("starting testing");
 
     add_tmp_suite(suite, core01_suite());
+    add_tmp_suite(suite, core02_suite());
 
     CuSuiteRun(suite);
 
