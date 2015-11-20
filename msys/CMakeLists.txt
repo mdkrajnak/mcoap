@@ -16,6 +16,5 @@ set(SOURCE_FILES
     ms_mutex.h
     ms_thread.c
     ms_thread.h)
-# For win 32    msstdint.h)
 
 add_library(msys ${SOURCE_FILES})

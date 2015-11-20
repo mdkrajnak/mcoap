@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.3)
 project(mcoap)
 
+# Appears to be required to force compiling for C.
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
+
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/build/")
 set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/build/")
 
