@@ -35,18 +35,18 @@ ms_mutex_t* ms_mutex_term(ms_mutex_t* mutex) {
     return mutex;
 }
 
-ms_mutex_t* ms_mutex_lock(ms_mutex_t* mutex) {
+int ms_mutex_lock(ms_mutex_t* mutex) {
     mutex_win_t* mymutex = (mutex_win_t*)mutex;
     
     EnterCriticalSection(&mymutex->mutex);
-    return mutex;
+    return 1;
 }
 
-ms_mutex_t* ms_mutex_unlock(ms_mutex_t* mutex) {
+int ms_mutex_unlock(ms_mutex_t* mutex) {
     mutex_win_t* mymutex = (mutex_win_t*)mutex;
     
     LeaveCriticalSection(&mymutex->mutex);
-    return mutex;
+    return 1;
 }
 
 /** @} */

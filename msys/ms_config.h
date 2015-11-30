@@ -11,6 +11,10 @@
 
 #include <stdlib.h>
 
+#ifdef WIN32
+	#include <windows.h>
+#endif
+
 #ifdef _MSC_VER 
     #if _MSC_VER < 1600
     #include "msys/msstdint.h"

@@ -1,5 +1,6 @@
 #include <string.h>
 #include "msys/ms_memory.h"
+#include "mnet/mn_socket.h"
 #include "mnet/mn_sockaddr.h"
 
 /**
@@ -25,13 +26,13 @@ static int host2addr(struct in_addr* addr, const char* hostname) {
     /* If conversion failed assume it is a hostname and look it up. */
     if (!success) {
         hostent_t* hostent = NULL;
-        in_addr_t** inaddr;
+        struct in_addr** inaddr;
 
         err = mn_gethostbyname(hostname, &hostent);
         if (err != MN_DONE) return err;
 
-        inaddr = (in_addr_t**)hostent->h_addr_list;
-        memcpy(addr, *inaddr, sizeof(in_addr_t));
+        inaddr = (struct in_addr**)hostent->h_addr_list;
+        memcpy(addr, *inaddr, sizeof(struct in_addr));
     }
     return MN_DONE;
 }

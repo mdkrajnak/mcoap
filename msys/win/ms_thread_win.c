@@ -3,6 +3,8 @@
 #include "msys/ms_thread.h"
 #include "msys/ms_memory.h"
 
+#include <process.h>
+
 /**
  * @file
  * @ingroup thread
@@ -12,7 +14,7 @@
 
 typedef struct thread_win thread_win_t;
 struct thread_win {
-    us_thread_fn_t* thread_fn;
+    ms_thread_fn_t* thread_fn;
     void* rdata;
     HANDLE handle;
 };
@@ -26,14 +28,14 @@ static unsigned int __stdcall thread_main_fn(void* arg) {
     thread_win_t* thread  = (thread_win_t*)arg;
 
     /*  Run the thread routine. */
-    thread->thread_fn(thread->rdata);
+    (*thread->thread_fn)(thread->rdata);
     return 0;
 }
 
 ms_thread_t* ms_thread_init(ms_thread_t* thread, ms_thread_fn_t* thread_fn, void* rdata) {
     thread_win_t* mythread = (thread_win_t*)thread;
     
-    mythread->routine = routine;
+    mythread->thread_fn = thread_fn;
     mythread->rdata = rdata;
     mythread->handle = (HANDLE)_beginthreadex (NULL, 0, thread_main_fn, (void*)mythread, 0 , NULL);
     assert(mythread->handle != NULL);

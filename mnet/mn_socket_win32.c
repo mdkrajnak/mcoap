@@ -11,14 +11,55 @@
 #include <string.h>
 
 #include "mnet/mn_socket.h"
+#include "mnet/mn_socket_win32.h"
+#include <inaddr.h>
+#include <in6addr.h>
+#include <ws2ipdef.h>
 
+
+
+ /**
+ * From github user dubcanada at:
+ * https://github.com/dubcanada/inet_pton
+ *
+ * int inet_pton(int af, const char *src, void *dst);
+ *
+ * Compatible with inet_pton just replace inet_pton with xp_inet_pton
+ * and you are good to go. Uses WSAStringToAddressA instead of
+ * inet_pton, compatible with Windows 2000 +
+ */
+int inet_pton(int family, const char *src, void *dst)
+{
+	int rc;
+	struct sockaddr_storage addr;
+	int addr_len = sizeof(addr);
+
+	addr.ss_family = family;
+
+	rc = WSAStringToAddressA((char *)src, family, NULL,
+		(struct sockaddr*) &addr, &addr_len);
+	if (rc != 0) {
+		return -1;
+	}
+
+	if (family == AF_INET) {
+		memcpy(dst, &((struct sockaddr_in *) &addr)->sin_addr,
+			sizeof(struct in_addr));
+	}
+	else if (family == AF_INET6) {
+		memcpy(dst, &((struct sockaddr_in6 *)&addr)->sin6_addr,
+			sizeof(struct in6_addr));
+	}
+
+	return 1;
+}
 
 /**
  * This is a minimal implementation of inet_aton since its not available on windows.
  * Convert IPv4 decimal dotted IP address into an IP number.
  * @return 0 on failure, not 0 on success.
  */
-int inet_aton(const char *cp, inetaddr_t *inp) {
+int inet_aton(const char* cp, inetaddr_t* inp) {
     unsigned int a = 0, b = 0, c = 0, d = 0;
     int n = 0, r;
     unsigned long int addr = 0;
@@ -40,7 +81,7 @@ int inet_aton(const char *cp, inetaddr_t *inp) {
         addr += b; addr <<= 8;
         addr += c; addr <<= 8;
         addr += d;
-        inp->s_addr = htonl(addr);
+        inp->sin_addr.S_un.S_addr = htonl(addr);
     }
     return 1;
 }
@@ -110,7 +151,7 @@ int mn_socket_open() {
         WSACleanup();
         return 0; 
     }
-    return US_DONE;
+    return MN_DONE;
 }
 
 /**
@@ -129,12 +170,12 @@ int mn_socket_close() {
 #define WAITFD_E        4
 #define WAITFD_C        (WAITFD_E|WAITFD_W)
 
-int mn_socket_waitfd(mn_socket_t* sock, int sw, us_timeout_t* tout) {
+int mn_socket_waitfd(mn_socket_t* sock, int sw, mn_timeout_t* tout) {
     int ret;
     fd_set rfds, wfds, efds, *rp = NULL, *wp = NULL, *ep = NULL;
     struct timeval tv, *tp = NULL;
     double t;
-    if (timeout_iszero(tm)) return UN_TIMEOUT;  /* optimize timeout == 0 case */
+    if (mn_timeout_iszero(tout)) return MN_TIMEOUT;  /* optimize timeout == 0 case */
     if (sw & WAITFD_R) { 
         FD_ZERO(&rfds); 
         FD_SET(*sock, &rfds);
@@ -142,36 +183,37 @@ int mn_socket_waitfd(mn_socket_t* sock, int sw, us_timeout_t* tout) {
     }
     if (sw & WAITFD_W) { FD_ZERO(&wfds); FD_SET(*sock, &wfds); wp = &wfds; }
     if (sw & WAITFD_C) { FD_ZERO(&efds); FD_SET(*sock, &efds); ep = &efds; }
-    if ((t = timeout_get(tm)) >= 0.0) {
+    if ((t = mn_timeout_get(tout)) >= 0.0) {
         tv.tv_sec = (int) t;
         tv.tv_usec = (int) ((t-tv.tv_sec)*1.0e6);
         tp = &tv;
     }
     ret = select(0, rp, wp, ep, tp);
     if (ret == -1) return WSAGetLastError();
-    if (ret == 0) return UN_TIMEOUT;
-    if (sw == WAITFD_C && FD_ISSET(*sock, &efds)) return UN_CLOSED;
-    return UN_DONE;
+    if (ret == 0) return MN_TIMEOUT;
+    if (sw == WAITFD_C && FD_ISSET(*sock, &efds)) return MN_CLOSED;
+    return MN_DONE;
 }
 
 /**
  * Close and destroy socket
  */
-void mn_socket_destroy(mn_socket_t* sock) {
-    if (*sock != UN_SOCKET_INVALID) {
-        socket_setblocking(ps); /* close can take a long time on WIN32 */
+int mn_socket_destroy(mn_socket_t* sock) {
+    if (*sock != MN_SOCKET_INVALID) {
+        mn_socket_setblocking(sock); /* close can take a long time on WIN32 */
         closesocket(*sock);
-        *sock = UN_SOCKET_INVALID;
+        *sock = MN_SOCKET_INVALID;
     }
+	return MN_DONE;
 }
 
 /**
  * 
  */
 void mn_socket_shutdown(mn_socket_t* sock, int how) {
-    mn_socket_setblocking(ps);
+    mn_socket_setblocking(sock);
     shutdown(*sock, how);
-    mn_socket_setnonblocking(ps);
+    mn_socket_setnonblocking(sock);
 }
 
 /**
@@ -179,83 +221,33 @@ void mn_socket_shutdown(mn_socket_t* sock, int how) {
  */
 int mn_socket_create(mn_socket_t* sock, int domain, int type, int protocol) {
     *sock = socket(domain, type, protocol);
-    if (*sock != UN_SOCKET_INVALID) return UN_DONE;
+    if (*sock != MN_SOCKET_INVALID) return MN_DONE;
     else return WSAGetLastError();
-}
-
-/**
- * Convert a host name to an in_addr structure.
- * First assume its an IPv4 decimal dotted address, if not
- * try looking it up by name.
- * @return MN_DONE on success.
- */
-static int host2addr(in_addr_t* addr, const char* hostname) {
-	int err;
-	int success;
-
-	/* Try to convert from decimal dotted form to address. */
-	success = inet_aton(hostname, addr);
-
-	/* If conversion failed assume it is a hostname and look it up. */
-	if (!success) {
-		hostent_t* hostent = NULL;
-		in_addr_t** inaddr;
-
-		err = mn_gethostbyname(hostname, &hostent);
-		if (err != MN_DONE) return err;
-
-		inaddr = (in_addr_t**)hostent->h_addr_list;
-		memcpy(addr, *inaddr, sizeof(in_addr_t));
-	}
-	return MN_DONE;
-}
-
-/**
- * Initialize an internet address structure.
- * If the hostname is the * wildcard we use INADDR_ANY for the address.
- * @return pointer to the initialized address or 0.
- */
-inetaddr_t* mn_inetaddr_init(inetaddr_t* addr, const char *hostname, unsigned short port) {
-    int err;
-
-    if (!addr) return 0;
-
-    addr->sin_port = htons(port);
-
-    if (strcmp(hostname, "*")) {
-    	addr->sin_family = AF_INET;
-    	err = host2addr(&addr->sin_addr, hostname);
-        if (err != MN_DONE) return 0;
-    }
-    else {
-    	addr->sin_addr.s_addr = htonl(INADDR_ANY);
-    }
-    return addr;
 }
 
 /**
  * Connects or returns error message
  */
-int mn_socket_connect(mn_socket_t* sock, sockaddr_t* addr, socklen_t len, us_timeout_t* tout) {
+int mn_socket_connect(mn_socket_t* sock, sockaddr_t* addr, socklen_t len, mn_timeout_t* tout) {
     int err;
     
     /* don't call on closed socket */
     
-    if (*sock == UN_SOCKET_INVALID) return UN_CLOSED;
+    if (*sock == MN_SOCKET_INVALID) return MN_CLOSED;
     
     /* ask system to connect */
-    if (connect(*sock, addr, len) == 0) return UN_DONE;
+    if (connect(*sock, addr, len) == 0) return MN_DONE;
     
     /* make sure the system is trying to connect */
     err = WSAGetLastError();
     if (err != WSAEWOULDBLOCK && err != WSAEINPROGRESS) return err;
     
     /* zero timeout case optimization */
-    if (mn_timeout_iszero(tm)) return UN_TIMEOUT;
+    if (mn_timeout_iszero(tout)) return MN_TIMEOUT;
     
     /* we wait until something happens */
-    err = mn_socket_waitfd(ps, WAITFD_C, tm);
-    if (err == UN_CLOSED) {
+    err = mn_socket_waitfd(sock, WAITFD_C, tout);
+    if (err == MN_CLOSED) {
         int elen = sizeof(err);
         
         /* give windows time to set the error (yes, disgusting) */
@@ -266,7 +258,7 @@ int mn_socket_connect(mn_socket_t* sock, sockaddr_t* addr, socklen_t len, us_tim
         
         /* we KNOW there was an error. if 'why' is 0, we will return
         * "unknown error", but it's not really our fault */
-        return err > 0? err: UN_UNKNOWN; 
+        return err > 0? err: MN_UNKNOWN; 
     } else return err;
 }
 
@@ -274,10 +266,10 @@ int mn_socket_connect(mn_socket_t* sock, sockaddr_t* addr, socklen_t len, us_tim
  * Binds or returns error message
  */
 int mn_socket_bind(mn_socket_t* sock, sockaddr_t* addr, socklen_t len) {
-    int err = UN_DONE;
-    mn_socket_setblocking(ps);
+    int err = MN_DONE;
+    mn_socket_setblocking(sock);
     if (bind(*sock, addr, len) < 0) err = WSAGetLastError();
-    mn_socket_setnonblocking(ps);
+    mn_socket_setnonblocking(sock);
     return err;
 }
 
@@ -285,27 +277,27 @@ int mn_socket_bind(mn_socket_t* sock, sockaddr_t* addr, socklen_t len) {
  * Tell a socket to listen. 
  */
 int mn_socket_listen(mn_socket_t* sock, int backlog) {
-    int err = UN_DONE;
-    mn_socket_setblocking(ps);
+    int err = MN_DONE;
+    mn_socket_setblocking(sock);
     if (listen(*sock, backlog) < 0) err = WSAGetLastError();
-    mn_socket_setnonblocking(ps);
+    mn_socket_setnonblocking(sock);
     return err;
 }
 
 /**
  * Accept with timeout
  */
-int mn_socket_accept(mn_socket_t* sock, mn_socket_t* asock, sockaddr_t* addr, socklen_t *len, us_timeout_t* tout) {
-    SA daddr;
+int mn_socket_accept(mn_socket_t* sock, mn_socket_t* asock, sockaddr_t* addr, socklen_t *len, mn_timeout_t* tout) {
+    sockaddr_t daddr;
     socklen_t dlen = sizeof(daddr);
-    if (*sock == UN_SOCKET_INVALID) return UN_CLOSED;
+    if (*sock == MN_SOCKET_INVALID) return MN_CLOSED;
     if (!addr) addr = &daddr;
     if (!len) len = &dlen;
     for ( ;; ) {
         int err;
         
         /* try to get client socket */
-        if ((*asock = accept(*sock, addr, len)) != UN_SOCKET_INVALID) return UN_DONE;
+        if ((*asock = accept(*sock, addr, len)) != MN_SOCKET_INVALID) return MN_DONE;
         
         /* find out why we failed */
         err = WSAGetLastError(); 
@@ -314,10 +306,10 @@ int mn_socket_accept(mn_socket_t* sock, mn_socket_t* asock, sockaddr_t* addr, so
         if (err != WSAEWOULDBLOCK && err != WSAECONNABORTED) return err;
         
         /* call select to avoid busy wait */
-        if ((err = mn_socket_waitfd(asock, WAITFD_R, tout)) != UN_DONE) return err;
+        if ((err = mn_socket_waitfd(asock, WAITFD_R, tout)) != MN_DONE) return err;
     } 
     /* can't reach here */
-    //return UN_UNKNOWN; 
+    //return MN_UNKNOWN; 
 }
 
 /**
@@ -327,13 +319,13 @@ int mn_socket_accept(mn_socket_t* sock, mn_socket_t* asock, sockaddr_t* addr, so
  * Therefore, whoever calls this function should not pass a huge buffer.
  */
 int mn_socket_send(mn_socket_t* sock, const char* data, size_t count, 
-        size_t* sent, us_timeout_t* tout)
+        size_t* sent, mn_timeout_t* tout)
 {
     int err;
     *sent = 0;
     
     /* avoid making system calls on closed sockets */
-    if (*sock == UN_SOCKET_INVALID) return UN_CLOSED;
+    if (*sock == MN_SOCKET_INVALID) return MN_CLOSED;
     /* loop until we send something or we give up on error */
     for ( ;; ) {
         /* try to send something */
@@ -342,7 +334,7 @@ int mn_socket_send(mn_socket_t* sock, const char* data, size_t count,
         /* if we sent something, we are done */
         if (put > 0) {
             *sent = put;
-            return UN_DONE;
+            return MN_DONE;
         }
         
         /* deal with failure */
@@ -352,94 +344,96 @@ int mn_socket_send(mn_socket_t* sock, const char* data, size_t count,
         if (err != WSAEWOULDBLOCK) return err;
         
         /* avoid busy wait */
-        if ((err = mn_socket_waitfd(ps, WAITFD_W, tm)) != UN_DONE) return err;
+        if ((err = mn_socket_waitfd(sock, WAITFD_W, tout)) != MN_DONE) return err;
     } 
     /* can't reach here */
-    // return UN_UNKNOWN;
+    // return MN_UNKNOWN;
 }
 
 /**
  * Sendto with timeout
  */
 int mn_socket_sendto(mn_socket_t* sock, const char* data, size_t count, size_t* sent, 
-        sockaddr_t* addr, socklen_t len, us_timeout_t* tout)
+        sockaddr_t* addr, socklen_t len, mn_timeout_t* tout)
 {
     int err;
     *sent = 0;
-    if (*sock == UN_SOCKET_INVALID) return UN_CLOSED;
+    if (*sock == MN_SOCKET_INVALID) return MN_CLOSED;
     for ( ;; ) {
         int put = sendto(*sock, data, (int) count, 0, addr, len);
         if (put > 0) {
             *sent = put;
-            return UN_DONE;
+            return MN_DONE;
         }
         err = WSAGetLastError(); 
         if (err != WSAEWOULDBLOCK) return err;
-        if ((err = mn_socket_waitfd(ps, WAITFD_W, tm)) != UN_DONE) return err;
+        if ((err = mn_socket_waitfd(sock, WAITFD_W, tout)) != MN_DONE) return err;
     } 
-    // return UN_UNKNOWN;
+    // return MN_UNKNOWN;
 }
 
 /**
  * Receive with timeout
  */
-int mn_socket_recv(mn_socket_t* sock, char* data, size_t count, size_t* got, us_timeout_t* tout) {
+int mn_socket_recv(mn_socket_t* sock, char* data, size_t count, size_t* got, mn_timeout_t* tout) {
     int err;
     *got = 0;
-    if (*sock == UN_SOCKET_INVALID) return UN_CLOSED;
+    if (*sock == MN_SOCKET_INVALID) return MN_CLOSED;
     for ( ;; ) {
         int taken = recv(*sock, data, (int) count, 0);
         if (taken > 0) {
             *got = taken;
-            return UN_DONE;
+            return MN_DONE;
         }
-        if (taken == 0) return UN_CLOSED;
+        if (taken == 0) return MN_CLOSED;
         err = WSAGetLastError();
         if (err != WSAEWOULDBLOCK) return err;
 
         /* Socket is in a state where it would block, wait with timeout until its ready. */
-        if ((err = mn_socket_waitfd(ps, WAITFD_R, tm)) != UN_DONE) return err;
+        if ((err = mn_socket_waitfd(sock, WAITFD_R, tout)) != MN_DONE) return err;
     }
-    // return UN_UNKNOWN;
+    // return MN_UNKNOWN;
 }
 
 /**
  * Recvfrom with timeout
  */
 int mn_socket_recvfrom(mn_socket_t* sock, char* data, size_t count, size_t* got, 
-        sockaddr_t* addr, socklen_t* len, us_timeout_t* tout) {
+        sockaddr_t* addr, socklen_t* len, mn_timeout_t* tout) {
     int err;
     *got = 0;
-    if (*sock == UN_SOCKET_INVALID) return UN_CLOSED;
+    if (*sock == MN_SOCKET_INVALID) return MN_CLOSED;
     for ( ;; ) {
         int taken = recvfrom(*sock, data, (int) count, 0, addr, len);
         if (taken > 0) {
             *got = taken;
-            return UN_DONE;
+            return MN_DONE;
         }
-        if (taken == 0) return UN_CLOSED;
+        if (taken == 0) return MN_CLOSED;
         err = WSAGetLastError();
         if (err != WSAEWOULDBLOCK) return err;
-        if ((err = mn_socket_waitfd(ps, WAITFD_R, tm)) != UN_DONE) return err;
+        if ((err = mn_socket_waitfd(sock, WAITFD_R, tout)) != MN_DONE) return err;
     }
     // Unreachable code.
-    // return UN_UNKNOWN;
+    // return MN_UNKNOWN;
 }
 
 /**
  * Put socket into blocking mode
  */
-void mn_socket_setblocking(mn_socket_t* sock) {
+int mn_socket_setblocking(mn_socket_t* sock) {
     u_long argp = 0;
     ioctlsocket(*sock, FIONBIO, &argp);
+	return MN_DONE;
 }
 
 /**
  * Put socket into non-blocking mode
  */
-void mn_socket_setnonblocking(mn_socket_t* sock) {
+int mn_socket_setnonblocking(mn_socket_t* sock) {
     u_long argp = 1;
     ioctlsocket(*sock, FIONBIO, &argp);
+	return MN_DONE;
 }
 
 /**
@@ -447,7 +441,7 @@ void mn_socket_setnonblocking(mn_socket_t* sock) {
  */
 int mn_select(int n, fd_set *rfds, fd_set *wfds, fd_set *efds, mn_timeout_t* tm) {
     struct timeval tv; 
-    double t = timeout_get(tm);
+    double t = mn_timeout_get(tm);
     tv.tv_sec = (int) t;
     tv.tv_usec = (int) ((t - tv.tv_sec) * 1.0e6);
     if (n <= 0) {
@@ -461,13 +455,13 @@ int mn_select(int n, fd_set *rfds, fd_set *wfds, fd_set *efds, mn_timeout_t* tm)
  */
 int mn_gethostbyaddr(const char* addr, socklen_t len, hostent_t** hp) {
     *hp = gethostbyaddr(addr, len, AF_INET);
-    if (*hp) return UN_DONE;
+    if (*hp) return MN_DONE;
     else return WSAGetLastError();
 }
 
 int mn_gethostbyname(const char* addr, hostent_t** hp) {
     *hp = gethostbyname(addr);
-    if (*hp) return UN_DONE;
+    if (*hp) return MN_DONE;
     else return  WSAGetLastError();
 }
 
@@ -475,7 +469,7 @@ int mn_gethostbyname(const char* addr, hostent_t** hp) {
  * Error translation functions
  */
 const char* mn_hoststrerror(int err) {
-    if (err <= 0) return UN_strerror(err);
+    if (err <= 0) return mn_strerror(err);
     switch (err) {
         case WSAHOST_NOT_FOUND: return "host not found";
         default: return wstrerror(err); 
@@ -483,7 +477,7 @@ const char* mn_hoststrerror(int err) {
 }
 
 const char* mn_strerror(int err) {
-    if (err <= 0) return UN_strerror(err);
+    if (err <= 0) return mn_strerror(err);
     switch (err) {
         case WSAEADDRINUSE: return "address already in use";
         case WSAECONNREFUSED: return "connection refused";
@@ -497,7 +491,7 @@ const char* mn_strerror(int err) {
 }
 
 const char* mn_ioerror(mn_socket_t* sock, int err) {
-    (void) ps;
+    (void) sock;
     return mn_strerror(err);
 }
 

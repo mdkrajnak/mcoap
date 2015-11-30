@@ -9,6 +9,10 @@ set(LIBRARY_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/build/")
 
 include_directories(${PROJECT_SOURCE_DIR})
 
+if (WIN32)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -DWIN32_LEAN_AND_MEAN)
+endif(WIN32)
+
 add_subdirectory(cutest)
 add_subdirectory(msys)
 add_subdirectory(testms)

@@ -22,13 +22,14 @@
  * but without the mn_ prefix.We name sockaddr_in structs inetaddr_t.
  */
 typedef struct sockaddr sockaddr_t;
+typedef struct sockaddr_in inetaddr_t;
 typedef struct hostent hostent_t;
 
 /* Define an abstact socket interface. */
 int mn_socket_open();
 int mn_socket_close();
 void mn_socket_shutdown(mn_socket_t* sock, int how); 
-void mn_socket_destroy(mn_socket_t* sock);
+int mn_socket_destroy(mn_socket_t* sock);
 
 int mn_socket_sendto(
     mn_socket_t* sock, const char* data, size_t count, size_t* sent, 

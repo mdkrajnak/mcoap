@@ -8,6 +8,9 @@
 #include "testms/ms_endian_test.h"
 
 #if defined(WIN32) && defined(_DEBUG)
+
+#include <crtdbg.h>
+
 void dumpMemLeaks() {
     _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
     _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDOUT);
