@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.3)
-project(mcoap)
+cmake_minimum_required(VERSION 3.2)
+project(mcoap VERSION 0.0.1 LANGUAGES C)
 
 # Appears to be required to force compiling for C.
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")

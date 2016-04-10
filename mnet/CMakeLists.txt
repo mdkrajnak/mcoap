@@ -1,26 +1,21 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.2)
 project(mnet)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
 
-if (WIN32)
-    set(SOCKET_IMPL "mn_socket_win32.c")
-	add_definitions(mnet -D_WINSOCK_DEPRECATED_NO_WARNINGS)
-elseif(!WIN32)
-    set(SOCKET_IMPL "mn_socket_unix.c")
-endif(WIN32)
-
-# mn_socket_win32.c
-# mn_socket_win32.h
-
-set(SOURCE_FILES
+add_library(mnet  
     mn_error.c
     mn_error.h
     mn_sockaddr.c
     mn_sockaddr.h
     mn_socket.h
     mn_timeout.c
-    mn_timeout.h
-    ${SOCKET_IMPL})
+    mn_timeout.h)
 
-add_library(mnet ${SOURCE_FILES})
+if (WIN32)
+    target_sources(mnet PRIVATE mn_socket_win.h mn_socket_win.c)
+    add_definitions(mnet -D_WINSOCK_DEPRECATED_NO_WARNINGS)
+else()
+    target_sources(mnet PRIVATE mn_socket_unix.h mn_socket_unix.c)
+endif()
+

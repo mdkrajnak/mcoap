@@ -92,12 +92,13 @@ int mn_socket_close() {
 /**
  * Close and invalidate socket
  */
-void mn_socket_destroy(mn_socket_t* sock) {
+int mn_socket_destroy(mn_socket_t* sock) {
     if (*sock != MN_SOCKET_INVALID) {
         mn_socket_setblocking(sock);
         close(*sock);
         *sock = MN_SOCKET_INVALID;
     }
+    return MN_DONE;
 }
 
 /**

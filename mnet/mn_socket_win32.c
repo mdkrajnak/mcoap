@@ -204,7 +204,7 @@ int mn_socket_destroy(mn_socket_t* sock) {
         closesocket(*sock);
         *sock = MN_SOCKET_INVALID;
     }
-	return MN_DONE;
+    return MN_DONE;
 }
 
 /**

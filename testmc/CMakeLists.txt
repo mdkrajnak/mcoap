@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.2)
 project(testmc)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -19,5 +19,5 @@ set(SOURCE_FILES
     mc_uri_test.h)
 
 add_executable(testmc ${SOURCE_FILES})
-add_dependencies(testmc cutest msys mnet mcoap)
+add_dependencies(testmc cutest mcoap msys mnet)
 target_link_libraries(testmc mcoap mnet msys cutest pthread m)
