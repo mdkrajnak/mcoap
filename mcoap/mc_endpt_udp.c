@@ -230,7 +230,9 @@ static int send_endpt_buffer(mc_endpt_udp_t* const endpt, uint32_t nbytes, socka
 }
 
 /**
- * Only use to send the first con msg as this loads it into the confirm queue.
+ * Only used the first time we send a confirmable msg as this loads it into the confirm queue.
+ * Retransmits are sent by send_entry_buffer() when we check the the buffer queues.
+ * 
  */
 static int send_con_msg(mc_endpt_udp_t* const endpt, uint32_t nbytes, sockaddr_t* toaddr, mc_message_t* msg, mc_endpt_result_fn_t resultfn) {
     mc_buffer_queue_entry_t* entry = mc_buffer_queue_add(
