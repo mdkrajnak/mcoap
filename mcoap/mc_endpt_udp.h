@@ -16,31 +16,32 @@
 
 /* @todo consider creating a struct and init-with-defaults function for this information. */
 /* Default transmission parameters. */
-#define ACK_TIMEOUT       2  	/**< seconds. */
-#define ACK_RANDOM_FACTOR 1.5	/**< multiplier. */
-#define MAX_RETRANSMIT    4		/**< count. */
-#define NSTART            1		/**< count. */
-#define LEISURE           5		/**< seconds. */
-#define PROBING_RATE      1		/**< bytes/second. */
+#define ACK_TIMEOUT       2      /**< seconds. */
+#define ACK_RANDOM_FACTOR 1.5    /**< multiplier. */
+#define MAX_RETRANSMIT    4        /**< count. */
+#define NSTART            1        /**< count. */
+#define LEISURE           5        /**< seconds. */
+#define PROBING_RATE      1        /**< bytes/second. */
 
-#define MAX_TRANSMIT_SPAN	45	/* ACK_TIMEOUT * ((2 ** MAX_RETRANSMIT) - 1) * ACK_RANDOM_FACTOR */
-#define MAX_LATENCY			100
-#define PROCESSING_DELAY	ACK_TIMEOUT
-#define EXCHANGE_LIFETIME   247	/* MAX_TRANSMIT_SPAN + (2 * MAX_LATENCY) + PROCESSING_DELAY */
-
-typedef int (*mc_endpt_read_fn_t)(mc_message_t* msg);
+#define MAX_TRANSMIT_SPAN   45    /* ACK_TIMEOUT * ((2 ** MAX_RETRANSMIT) - 1) * ACK_RANDOM_FACTOR */
+#define MAX_LATENCY         100
+#define PROCESSING_DELAY    ACK_TIMEOUT
+#define EXCHANGE_LIFETIME   247   /* MAX_TRANSMIT_SPAN + (2 * MAX_LATENCY) + PROCESSING_DELAY */
 
 typedef struct mc_endpt_udp mc_endpt_udp_t;
+
+typedef int (*mc_endpt_read_fn_t)(mc_endpt_udp_t* const endpt, mc_message_t* const msg);
+
 struct mc_endpt_udp {
-	ms_thread_t* thread;
-	mn_socket_t sock;
-	mn_timeout_t tmout;
-	mc_endpt_read_fn_t readfn;
-	mc_buffer_t rdbuffer;
-	mc_buffer_t wrbuffer;
-	mc_buffer_queue_t confirmq;
-	int running;
-	uint16_t nextid;
+    ms_thread_t* thread;
+    mn_socket_t sock;
+    mn_timeout_t tmout;
+    mc_endpt_read_fn_t readfn;
+    mc_buffer_t rdbuffer;
+    mc_buffer_t wrbuffer;
+    mc_buffer_queue_t confirmq;
+    int running;
+    uint16_t nextid;
 };
 
 mc_endpt_udp_t* mc_endpt_udp_alloc();
@@ -55,13 +56,13 @@ int mc_endpt_udp_send(mc_endpt_udp_t* const endpt, sockaddr_t* toaddr, mc_messag
 mc_endpt_udp_t* mc_endpt_udp_check_queues(mc_endpt_udp_t* const endpt);
 int mc_endpt_udp_ack(mc_endpt_udp_t *const endpt, sockaddr_t *const addr, mc_buffer_t *token, uint16_t msgid);
 uint16_t mc_endpt_udp_delete(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn,
-						     char* const uri, mc_options_list_t* extra);
+                             char* const uri, mc_options_list_t* extra);
 uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn,
                           char* const uri, mc_options_list_t* extra);
 uint16_t mc_endpt_udp_post(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn,
-						   char* const uri, mc_options_list_t* extra, mc_buffer_t* payload);
+                           char* const uri, mc_options_list_t* extra, mc_buffer_t* payload);
 uint16_t mc_endpt_udp_put(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn,
-						  char* const uri, mc_options_list_t* extra, mc_buffer_t* payload);
+                          char* const uri, mc_options_list_t* extra, mc_buffer_t* payload);
 mc_message_t* mc_endpt_udp_get_queued_msg(mc_endpt_udp_t* endpt, uint16_t msgid);
 
 /** @} */

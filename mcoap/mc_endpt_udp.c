@@ -102,7 +102,7 @@ static void endpt_udp_loop(mc_endpt_udp_t* endpt) {
         if (msg) {
             /* There's no locking around setting the running flag. */
             /* This should be fine as longer as the using program does not set running outside this thread. */
-            endpt->running = endpt->readfn(msg);
+            endpt->running = endpt->readfn(endpt, msg);
             ms_free(mc_message_deinit(msg));
         }
 
