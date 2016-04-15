@@ -22,7 +22,9 @@
 #include "mcoap/mc_endpt_udp.h"
 
  int request_handler(mc_endpt_udp_t* const endpt, mc_message_t* const msg) {
-    return 0;
+    // Currently just echoing the message.
+    if (msg->from) mc_endpt_udp_send(endpt, msg->from, msg, 0);
+    return 1;
  }
  
 static void run_server(unsigned short port) {
@@ -38,7 +40,7 @@ void usage() {
     printf(
         "tmserver [-p port]\n"
         "\n"
-        "-p port to specify the listening port\n");
+        "-s port to specify the server port\n");
 }
 
 static int getport(int argc, char** argv, unsigned short* port) {
@@ -47,7 +49,7 @@ static int getport(int argc, char** argv, unsigned short* port) {
 
     /* Note the endpoints, skip the first and last. */
     for (iarg = 1; iarg < (argc - 1); iarg++) {
-        if (strcmp("-p", argv[iarg]) == 0) {
+        if (strcmp("-s", argv[iarg]) == 0) {
             *port = atoi(argv[iarg+1]);
             if (*port == 0) {
                 printf("Unable to parse port %s.\n", argv[iarg+1]);
@@ -61,8 +63,8 @@ static int getport(int argc, char** argv, unsigned short* port) {
     }
 
     /* Check the case of a trailing -p option. */
-    if (strcmp("-p", argv[argc-1]) == 0) {
-        printf("Trailing -p without a port number.\n");
+    if (strcmp("-s", argv[argc-1]) == 0) {
+        printf("Trailing -s without a port number.\n");
         err = 1;
     }
     else {

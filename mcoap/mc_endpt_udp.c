@@ -398,6 +398,7 @@ uint16_t mc_endpt_udp_get(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, m
 
 /**
  * Post the uri specified, include extra options if any.
+ * Note: The payload and options data is free'd by the send call.
  * @return the message id.
  */
 uint16_t mc_endpt_udp_post(mc_endpt_udp_t* const endpt, sockaddr_t* const addr, mc_endpt_result_fn_t resultfn, char* const uri, mc_options_list_t* extra, mc_buffer_t* payload) {
