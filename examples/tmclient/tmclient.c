@@ -15,11 +15,11 @@
 #include "mcoap/mc_message.h"
 #include "mcoap/mc_endpt_udp.h"
 
-static mc_buffer_t* mk_payload(int npacket) {
-    uint64_t* payload = ms_calloc(32, uint64_t);
+static mc_buffer_t* mk_payload(int ndoubles, int npacket) {
+    float64_t* payload = ms_calloc(ndoubles, float64_t);
     payload[0] = npacket;
     
-    return mc_buffer_init(mc_buffer_alloc(), 256, (uint8_t*)payload);
+    return mc_buffer_init(mc_buffer_alloc(), ndoubles*(sizeof(float64_t)), (uint8_t*)payload);
 }
 
 static void process_resp(mc_message_t* const msg) {
@@ -29,7 +29,7 @@ static void process_resp(mc_message_t* const msg) {
     printf("Received message %ld with %d bytes\n", payload[0], msg->payload->nbytes);
 }
 
-static void run_client(unsigned short cltport, unsigned short srvport, unsigned short ntimes) {
+static void run_client(unsigned short cltport, unsigned short srvport, unsigned short ntimes, unsigned short nbytes) {
     sockaddr_t addr;
     mc_endpt_udp_t endpt;
     uint16_t msgid;
@@ -38,7 +38,15 @@ static void run_client(unsigned short cltport, unsigned short srvport, unsigned 
     unsigned short itimes;
     double start;
     double stop;
+    double delta;
+    double usec;
+    int ndoubles;
     char* uri = ms_calloc(64, char);
+    
+    if (nbytes < (sizeof(float64_t) * 3)) nbytes = sizeof(float64_t) * 3;
+    if (nbytes > 256) nbytes = 256;
+    ndoubles = nbytes/sizeof(float64_t);
+    printf("ndoubles: %d\n", ndoubles);
     
     sprintf(uri, "coap://127.0.0.1:%u/gettime", srvport);
     
@@ -49,13 +57,16 @@ static void run_client(unsigned short cltport, unsigned short srvport, unsigned 
     start = mn_gettime();
     for (itimes = 0; itimes < ntimes; itimes++) {
         // Note we pass in 0 for the result function so the message is nonconfirmable.
-        msgid = mc_endpt_udp_post(&endpt, &addr, 0, uri, 0, mk_payload(itimes));
+        msgid = mc_endpt_udp_post(&endpt, &addr, 0, uri, 0, mk_payload(ndoubles, itimes));
         msg = mc_endpt_udp_recv(&endpt);
         process_resp(msg);
         if (msg) ms_free(mc_message_deinit(msg));
     }
     stop = mn_gettime();
-    printf("elapsed: %g, %g kb/sec\n", (stop - start), ((ntimes * (256.0/1024.0))/(stop - start)));
+    delta = stop - start;
+    usec = delta * 1000 * 1000;
+    printf("elapsed: %g, %g kb/sec\n", delta, ((ntimes * (256.0/1024.0))/delta));
+    printf("average roundtrip: %g usec, half: %g usec\n", usec/ntimes, usec/(ntimes * 2));
 
     ms_free(uri);
     mc_endpt_udp_deinit(&endpt);
@@ -67,7 +78,8 @@ void usage() {
         "\n"
         "-c port to specify the client port\n"
         "-s port to specify the server port\n"
-        "-n to specify the number of requests\n");
+        "-b to specify the number of bytes to send\n"
+        "-t to specify the number of times to send a request\n");
 }
 
 static int getport(int argc, char** argv, char* const flag, unsigned short* port) {
@@ -108,12 +120,15 @@ int main(int argc, char** argv) {
     unsigned short cltport = MC_DEFAULT_PORT+1;
     unsigned short srvport = MC_DEFAULT_PORT;
     unsigned short ntimes = 10;
+    unsigned short nbytes = 256;
+    
     int err = getport(argc, argv, "-c", &cltport);
     if (!err) err = getport(argc, argv, "-s", &srvport);
-    if (!err) err = getport(argc, argv, "-n", &ntimes);
+    if (!err) err = getport(argc, argv, "-t", &ntimes);
+    if (!err) err = getport(argc, argv, "-b", &nbytes);
 
     if (err) usage();
-    else run_client(cltport, srvport, ntimes);
+    else run_client(cltport, srvport, ntimes, nbytes);
 
     return 0;
 }
